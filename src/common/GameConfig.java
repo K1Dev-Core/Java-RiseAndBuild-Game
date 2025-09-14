@@ -16,16 +16,4 @@ public class GameConfig {
     public static final int MOVE_SPEED = 4;
     public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 200;
-    public static final int PORTAL_SIZE = 256;
-    public static final int PORTAL_ANIMATION_FRAMES = 6;
-    public static final int PORTAL_TELEPORT_DISTANCE = 128;
-    public static final int PORTAL_SAFE_DISTANCE = 128;
-    public static final int GRID_SIZE = 64;
-    public static final int PORTAL_GRID_SIZE = 4;
-    public static final int TELEPORT_GRID_DISTANCE = 2;
-    
-    public static final int[][] PORTAL_POSITIONS = {
-        {200, 268, 3000, 3000},
-        {3000, 3000, 200, 268}
-    };
 }

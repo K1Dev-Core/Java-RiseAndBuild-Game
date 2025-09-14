@@ -44,34 +44,13 @@ public class Player {
         }
     }
     
+    
     public void setPosition(int x, int y) {
         this.x = x;
         this.y = y;
     }
     
-    public boolean canMoveTo(int newX, int newY, int portalX, int portalY, int portalSize) {
-        int playerGridX = newX / GameConfig.GRID_SIZE;
-        int playerGridY = newY / GameConfig.GRID_SIZE;
-        int portalGridX = portalX / GameConfig.GRID_SIZE;
-        int portalGridY = portalY / GameConfig.GRID_SIZE;
-        
-        return !(playerGridX >= portalGridX && playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE &&
-                playerGridY >= portalGridY && playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE);
-    }
     
-    private boolean isCollidingWithPortal(int newX, int newY) {
-        return false;
-    }
-    
-    public boolean isCollidingWithPortal(int newX, int newY, int portalX, int portalY, int portalSize) {
-        int playerGridX = newX / GameConfig.GRID_SIZE;
-        int playerGridY = newY / GameConfig.GRID_SIZE;
-        int portalGridX = portalX / GameConfig.GRID_SIZE;
-        int portalGridY = portalY / GameConfig.GRID_SIZE;
-        
-        return playerGridX >= portalGridX && playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE &&
-               playerGridY >= portalGridY && playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE;
-    }
     
 
     
