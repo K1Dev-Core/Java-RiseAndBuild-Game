@@ -16,13 +16,14 @@ public class GamePanel extends JPanel {
     private boolean showAttackFeedback = false;
     private final Map<String, Integer> playerAttackFrames = new HashMap<>();
     private long lastAttackTime = 0;
-    private final float zoom = 1.0f;
+    private final float zoom = 5.0f;
     private SoundManager soundManager;
     private boolean gameStarted = false;
     private boolean needsRepaint = false;
     private int fps = 0;
     private long lastFpsTime = 0;
     private int frameCount = 0;
+    private Image mapImage;
     
     public GamePanel() {
         setFocusable(true);
@@ -31,10 +32,15 @@ public class GamePanel extends JPanel {
         setOpaque(true);
         setBackground(Color.BLACK);
         setIgnoreRepaint(false);
+
         
-        System.setProperty("sun.java2d.opengl", "false");
-        System.setProperty("sun.java2d.d3d", "false");
-        System.setProperty("sun.java2d.noddraw", "true");
+        // โหลดรูปภาพแผนที่
+        try {
+            mapImage = javax.imageio.ImageIO.read(new java.io.File("assets/map/map.png"));
+        } catch (Exception e) {
+            System.out.println("ไม่สามารถโหลดรูปภาพแผนที่ได้: " + e.getMessage());
+            mapImage = null;
+        }
     }
     
     public void setPlayerId(String playerId) {
@@ -115,7 +121,7 @@ public class GamePanel extends JPanel {
                     if (p.id.equals(playerId)) {
                         int barWidth = (int)(40 * zoom);
                         int barHeight = (int)(4 * zoom);
-                        int scaledSize = 64; // ใช้ขนาดเดียวกับตาราง
+                        int scaledSize = (int)(64 * zoom); // ใช้ขนาดเดียวกับตาราง
                         int x = getWidth() / 2 - barWidth / 2;
                         int y = getHeight() / 2 + scaledSize / 2 + 20;
                         
@@ -141,6 +147,7 @@ public class GamePanel extends JPanel {
         
         Graphics2D g2d = (Graphics2D) g.create();
         try {
+            // ตั้งค่า rendering hints ที่เสถียรเพื่อลดการกระพริบ
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
@@ -155,13 +162,15 @@ public class GamePanel extends JPanel {
             
             drawBackground(g2d);
             
+            // เปลี่ยน rendering hints สำหรับตัวละคร
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+            
             synchronized(players) {
                 for (Player p : players.values()) {
                     drawPlayer(g2d, p);
                 }
             }
-            
-      
             
             drawCooldownBar(g2d);
             drawPlayerCoordinates(g2d);
@@ -199,55 +208,40 @@ public class GamePanel extends JPanel {
     }
     
     private void drawBackground(Graphics2D g2d) {
-        // วาดพื้นหลังสีเขียวเข้ม
-        g2d.setColor(new Color(20, 40, 20));
+        // วาดพื้นหลังสีดำ
+        g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // คำนวณตำแหน่งกล้องตามตัวละคร
-        Player mainPlayer = players.get(playerId);
-        if (mainPlayer != null) {
-            int cameraX = mainPlayer.x - getWidth() / 2;
-            int cameraY = mainPlayer.y - getHeight() / 2;
-            
-            // วาดตารางที่เคลื่อนไหวตามกล้อง
-            int gridSize = 64;
-            int startX = (cameraX / gridSize) * gridSize;
-            int startY = (cameraY / gridSize) * gridSize;
-            
-            for (int x = startX; x < startX + getWidth() + gridSize; x += gridSize) {
-                for (int y = startY; y < startY + getHeight() + gridSize; y += gridSize) {
-                    int screenX = x - cameraX;
-                    int screenY = y - cameraY;
-                    
-                    // สลับสีระหว่างช่อง
-                    if (((x / gridSize) + (y / gridSize)) % 2 == 0) {
-                        g2d.setColor(new Color(40, 80, 40));  // สีเขียว
-                    } else {
-                        g2d.setColor(new Color(60, 50, 30));  // สีน้ำตาล
-                    }
-                    g2d.fillRect(screenX, screenY, gridSize, gridSize);
-                    
-                    // วาดขอบตาราง
-                    g2d.setColor(new Color(30, 30, 30));
-                    g2d.drawRect(screenX, screenY, gridSize, gridSize);
-                }
+        // วาดรูปภาพแผนที่
+        if (mapImage != null) {
+            Player mainPlayer = players.get(playerId);
+            if (mainPlayer != null) {
+                // ใช้การคำนวณแบบ float เพื่อความแม่นยำ
+                float cameraX = mainPlayer.x * zoom - getWidth() / 2.0f;
+                float cameraY = mainPlayer.y * zoom - getHeight() / 2.0f;
+                
+                // วาดรูปภาพแผนที่ที่เคลื่อนไหวตามกล้อง
+                float drawX = -cameraX;
+                float drawY = -cameraY;
+                
+                // ใช้ interpolation ที่เสถียรสำหรับพื้นหลัง
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                
+                g2d.drawImage(mapImage, 
+                    (int)drawX, (int)drawY, 
+                    (int)(drawX + mapImage.getWidth(null) * zoom), 
+                    (int)(drawY + mapImage.getHeight(null) * zoom),
+                    0, 0, mapImage.getWidth(null), mapImage.getHeight(null), null);
+            } else {
+                // วาดรูปภาพแผนที่ธรรมดาเมื่อไม่มีตัวละคร
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2d.drawImage(mapImage, 0, 0, getWidth(), getHeight(), null);
             }
         } else {
-            // วาดตารางธรรมดาเมื่อไม่มีตัวละคร
-            int gridSize = 64;
-            for (int x = 0; x < getWidth(); x += gridSize) {
-                for (int y = 0; y < getHeight(); y += gridSize) {
-                    if (((x / gridSize) + (y / gridSize)) % 2 == 0) {
-                        g2d.setColor(new Color(40, 80, 40));
-                    } else {
-                        g2d.setColor(new Color(60, 50, 30));
-                    }
-                    g2d.fillRect(x, y, gridSize, gridSize);
-                    
-                    g2d.setColor(new Color(30, 30, 30));
-                    g2d.drawRect(x, y, gridSize, gridSize);
-                }
-            }
+            // วาดพื้นหลังธรรมดาเมื่อไม่มีรูปภาพ
+            g2d.setColor(new Color(20, 40, 20));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
         }
     }
     
@@ -336,7 +330,7 @@ public class GamePanel extends JPanel {
             int srcX = currentFrame * frameWidth;
             int srcY = 0;
             
-            int scaledSize = 64; // ใช้ขนาดเดียวกับตาราง
+            int scaledSize = (int)(64 * zoom); // ใช้ขนาดเดียวกับตาราง
             int screenX, screenY;
             
             if (p.id.equals(playerId)) {
@@ -347,8 +341,8 @@ public class GamePanel extends JPanel {
                 if (mainPlayer != null) {
                     int relativeX = p.x - mainPlayer.x;
                     int relativeY = p.y - mainPlayer.y;
-                    screenX = getWidth() / 2 + relativeX - scaledSize / 2;
-                    screenY = getHeight() / 2 + relativeY - scaledSize / 2;
+                    screenX = getWidth() / 2 + (int)(relativeX * zoom) - scaledSize / 2;
+                    screenY = getHeight() / 2 + (int)(relativeY * zoom) - scaledSize / 2;
                 } else {
                     screenX = getWidth() / 2;
                     screenY = getHeight() / 2;
@@ -389,7 +383,7 @@ public class GamePanel extends JPanel {
                 g.drawString(status, getWidth() - textWidth - 20, getHeight() - 20);
             }
         } else {
-            int scaledSize = 64; // ใช้ขนาดเดียวกับตาราง
+            int scaledSize = (int)(64 * zoom); // ใช้ขนาดเดียวกับตาราง
             int screenX, screenY;
             
             if (p.id.equals(playerId)) {
@@ -400,8 +394,8 @@ public class GamePanel extends JPanel {
                 if (mainPlayer != null) {
                     int relativeX = p.x - mainPlayer.x;
                     int relativeY = p.y - mainPlayer.y;
-                    screenX = getWidth() / 2 + relativeX - scaledSize / 2;
-                    screenY = getHeight() / 2 + relativeY - scaledSize / 2;
+                    screenX = getWidth() / 2 + (int)(relativeX * zoom) - scaledSize / 2;
+                    screenY = getHeight() / 2 + (int)(relativeY * zoom) - scaledSize / 2;
                 } else {
                     screenX = getWidth() / 2;
                     screenY = getHeight() / 2;
