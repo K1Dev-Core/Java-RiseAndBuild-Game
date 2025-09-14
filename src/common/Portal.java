@@ -38,7 +38,7 @@ public class Portal {
         int portalCenterY = y + GameConfig.PORTAL_SIZE / 2;
         
         int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
-        return distance < GameConfig.PORTAL_SIZE / 3;
+        return distance < GameConfig.PORTAL_SIZE / 2 + 50;
     }
     
     public boolean canTeleport() {
@@ -50,8 +50,8 @@ public class Portal {
         long currentTime = System.currentTimeMillis();
         lastTeleportTime = currentTime;
         
-        player.x = targetX;
-        player.y = targetY;
+        player.x = targetX + 25;
+        player.y = targetY + 5;
         
         System.out.println("Teleported player to: " + player.x + ", " + player.y);
     }

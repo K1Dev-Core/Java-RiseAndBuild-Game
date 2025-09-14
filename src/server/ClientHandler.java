@@ -50,6 +50,9 @@ public class ClientHandler implements Runnable {
                 } else if (input.equals("ATTACK")) {
                     player.attack();
                     broadcast();
+                } else if (input.equals("TELEPORT")) {
+                    handleTeleport(player);
+                    broadcast();
                 }
             }
         } catch (IOException e) {
@@ -101,6 +104,16 @@ public class ClientHandler implements Runnable {
         
         for (ClientHandler c : clients) {
             c.send(msg);
+        }
+    }
+    
+    private void handleTeleport(Player player) {
+        for (Portal portal : portals.values()) {
+            if (portal.isPlayerInside(player) && portal.canTeleport()) {
+                portal.teleportPlayer(player);
+                System.out.println("Server: Teleported player " + player.id + " to " + player.x + ", " + player.y);
+                break;
+            }
         }
     }
 }

@@ -39,21 +39,41 @@ public class Player {
             newX = Math.max(0, Math.min(newX, maxX));
             newY = Math.max(0, Math.min(newY, maxY));
             
-            if (!isCollidingWithPortal(newX, newY)) {
-                x = newX;
-                y = newY;
-            }
+            x = newX;
+            y = newY;
         }
-    }
-    
-    private boolean isCollidingWithPortal(int newX, int newY) {
-        return false;
     }
     
     public void setPosition(int x, int y) {
         this.x = x;
         this.y = y;
     }
+    
+    public boolean canMoveTo(int newX, int newY, int portalX, int portalY, int portalSize) {
+        int playerCenterX = newX + GameConfig.PLAYER_SIZE / 2;
+        int playerCenterY = newY + GameConfig.PLAYER_SIZE / 2;
+        int portalCenterX = portalX + portalSize / 2;
+        int portalCenterY = portalY + portalSize / 2;
+        
+        int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
+        return distance >= portalSize / 2 + GameConfig.PLAYER_SIZE / 2 + 10;
+    }
+    
+    private boolean isCollidingWithPortal(int newX, int newY) {
+        return false;
+    }
+    
+    public boolean isCollidingWithPortal(int newX, int newY, int portalX, int portalY, int portalSize) {
+        int playerCenterX = newX + GameConfig.PLAYER_SIZE / 2;
+        int playerCenterY = newY + GameConfig.PLAYER_SIZE / 2;
+        int portalCenterX = portalX + portalSize / 2;
+        int portalCenterY = portalY + portalSize / 2;
+        
+        int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
+        return distance < portalSize / 2 + GameConfig.PLAYER_SIZE / 2;
+    }
+    
+
     
     public void stop() {
         if (!state.equals("attack2")) {

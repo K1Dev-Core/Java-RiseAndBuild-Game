@@ -170,10 +170,11 @@ public class GamePanel extends JPanel {
         updateAnimation();
         updateAttackFeedback();
         
-        g.setColor(new Color(40, 40, 40));
+        g.setColor(new Color(30, 30, 30));
         g.fillRect(0, 0, getWidth(), getHeight());
         
         drawGridBackground(g);
+        drawGridSquares(g);
         
         
         synchronized(players) {
@@ -194,6 +195,7 @@ public class GamePanel extends JPanel {
         drawMapBoundaries(g);
         drawPortals(g);
         drawTeleportEffect(g);
+        drawTeleportStatus(g);
         checkPortalTeleport();
     }
     
@@ -246,83 +248,125 @@ public class GamePanel extends JPanel {
     
     private void drawGridBackground(Graphics g) {
         Player mainPlayer = players.get(playerId);
-        if (mainPlayer != null) {
-            int gridSize = (int)(20 * zoom);
-            
-            int startX = getWidth() / 2 - (int)((mainPlayer.x % gridSize) * zoom);
-            int startY = getHeight() / 2 - (int)((mainPlayer.y % gridSize) * zoom);
-            
-            for (int x = startX; x < getWidth() + gridSize; x += gridSize) {
-                g.setColor(new Color(80, 80, 80));
-                g.drawLine(x, 0, x, getHeight());
-            }
-            
+        if (mainPlayer == null) return;
+        
+        int gridSize = (int)(GameConfig.GRID_SIZE * zoom);
+        int startX = getWidth() / 2 - (int)((mainPlayer.x % GameConfig.GRID_SIZE) * zoom);
+        int startY = getHeight() / 2 - (int)((mainPlayer.y % GameConfig.GRID_SIZE) * zoom);
+        
+        g.setColor(new Color(80, 80, 80));
+        for (int x = startX; x < getWidth() + gridSize; x += gridSize) {
+            g.drawLine(x, 0, x, getHeight());
+        }
+        
+        for (int y = startY; y < getHeight() + gridSize; y += gridSize) {
+            g.drawLine(0, y, getWidth(), y);
+        }
+        
+        g.setColor(new Color(120, 120, 120));
+        for (int x = startX; x < getWidth() + gridSize; x += gridSize * 4) {
+            g.drawLine(x, 0, x, getHeight());
+        }
+        
+        for (int y = startY; y < getHeight() + gridSize; y += gridSize * 4) {
+            g.drawLine(0, y, getWidth(), y);
+        }
+        
+        g.setColor(new Color(160, 160, 160));
+        for (int x = startX; x < getWidth() + gridSize; x += gridSize * 8) {
+            g.drawLine(x, 0, x, getHeight());
+        }
+        
+        for (int y = startY; y < getHeight() + gridSize; y += gridSize * 8) {
+            g.drawLine(0, y, getWidth(), y);
+        }
+    }
+    
+    private void drawGridSquares(Graphics g) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
+        int gridSize = (int)(GameConfig.GRID_SIZE * zoom);
+        int startX = getWidth() / 2 - (int)((mainPlayer.x % GameConfig.GRID_SIZE) * zoom);
+        int startY = getHeight() / 2 - (int)((mainPlayer.y % GameConfig.GRID_SIZE) * zoom);
+        
+        for (int x = startX; x < getWidth() + gridSize; x += gridSize) {
             for (int y = startY; y < getHeight() + gridSize; y += gridSize) {
-                g.setColor(new Color(80, 80, 80));
-                g.drawLine(0, y, getWidth(), y);
-            }
-            
-            g.setColor(new Color(120, 120, 120));
-            for (int x = startX; x < getWidth() + gridSize; x += gridSize * 5) {
-                g.drawLine(x, 0, x, getHeight());
-            }
-            
-            for (int y = startY; y < getHeight() + gridSize; y += gridSize * 5) {
-                g.drawLine(0, y, getWidth(), y);
+                int worldX = (x - startX) / gridSize;
+                int worldY = (y - startY) / gridSize;
+                
+                if ((worldX + worldY) % 2 == 0) {
+                    g.setColor(new Color(50, 50, 50));
+                } else {
+                    g.setColor(new Color(40, 40, 40));
+                }
+                
+                g.fillRect(x, y, gridSize, gridSize);
+                
+                g.setColor(new Color(70, 70, 70));
+                g.drawRect(x, y, gridSize, gridSize);
             }
         }
     }
     
     private void drawPortals(Graphics g) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
         for (Portal portal : portals.values()) {
             portal.updateAnimation();
             
-            Player mainPlayer = players.get(playerId);
-            if (mainPlayer != null) {
-                int relativeX = portal.x - mainPlayer.x;
-                int relativeY = portal.y - mainPlayer.y;
-                int screenX = getWidth() / 2 + (int)(relativeX * zoom) - GameConfig.PORTAL_SIZE / 2;
-                int screenY = getHeight() / 2 + (int)(relativeY * zoom) - GameConfig.PORTAL_SIZE / 2;
+            int relativeX = portal.x - mainPlayer.x;
+            int relativeY = portal.y - mainPlayer.y;
+            int screenX = getWidth() / 2 + (int)(relativeX * zoom) - GameConfig.PORTAL_SIZE / 2;
+            int screenY = getHeight() / 2 + (int)(relativeY * zoom) - GameConfig.PORTAL_SIZE / 2;
+            
+            if (portalSprite != null) {
+                int frameWidth = portalSprite.getWidth(null) / GameConfig.PORTAL_ANIMATION_FRAMES;
+                int frameHeight = portalSprite.getHeight(null);
+                int srcX = portal.animationFrame * frameWidth;
+                int srcY = 0;
                 
-                if (portalSprite != null) {
-                    int frameWidth = portalSprite.getWidth(null) / GameConfig.PORTAL_ANIMATION_FRAMES;
-                    int frameHeight = portalSprite.getHeight(null);
-                    int srcX = portal.animationFrame * frameWidth;
-                    int srcY = 0;
+                g.drawImage(portalSprite, 
+                    screenX, screenY, screenX + GameConfig.PORTAL_SIZE, screenY + GameConfig.PORTAL_SIZE,
+                    srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                    null);
+            } else {
+                g.setColor(Color.MAGENTA);
+                g.fillOval(screenX, screenY, GameConfig.PORTAL_SIZE, GameConfig.PORTAL_SIZE);
+            }
+            
+            g.setColor(Color.WHITE);
+            g.drawString(portal.id, screenX, screenY - 10);
+            
+            int distance = (int) Math.sqrt(Math.pow(portal.x - mainPlayer.x, 2) + Math.pow(portal.y - mainPlayer.y, 2));
+            if (distance < GameConfig.PORTAL_TELEPORT_DISTANCE) {
+                g.setColor(Color.YELLOW);
+                g.drawOval(screenX - 10, screenY - 10, GameConfig.PORTAL_SIZE + 20, GameConfig.PORTAL_SIZE + 20);
+                
+                if (portal.isPlayerInside(mainPlayer)) {
+                    g.setColor(Color.CYAN);
+                    g.drawOval(screenX - 5, screenY - 5, GameConfig.PORTAL_SIZE + 10, GameConfig.PORTAL_SIZE + 10);
                     
-                    g.drawImage(portalSprite, 
-                        screenX, screenY, screenX + GameConfig.PORTAL_SIZE, screenY + GameConfig.PORTAL_SIZE,
-                        srcX, srcY, srcX + frameWidth, srcY + frameHeight,
-                        null);
-                } else {
-                    g.setColor(Color.MAGENTA);
-                    g.fillOval(screenX, screenY, GameConfig.PORTAL_SIZE, GameConfig.PORTAL_SIZE);
-                }
-                
-                g.setColor(Color.WHITE);
-                g.drawString(portal.id, screenX, screenY - 10);
-                
-                int distance = (int) Math.sqrt(Math.pow(portal.x - mainPlayer.x, 2) + Math.pow(portal.y - mainPlayer.y, 2));
-                if (distance < GameConfig.PORTAL_TELEPORT_DISTANCE) {
-                    g.setColor(Color.YELLOW);
-                    g.drawOval(screenX - 10, screenY - 10, GameConfig.PORTAL_SIZE + 20, GameConfig.PORTAL_SIZE + 20);
-                    
-                    if (portal.isPlayerInside(mainPlayer)) {
-                        g.setColor(Color.CYAN);
-                        g.drawOval(screenX - 5, screenY - 5, GameConfig.PORTAL_SIZE + 10, GameConfig.PORTAL_SIZE + 10);
-                        
-                        if (portal.canTeleport()) {
-                            g.setColor(Color.GREEN);
-                            g.drawString("PRESS SPACE TO TELEPORT", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
-                        } else {
-                            g.setColor(Color.RED);
-                            g.drawString("COOLDOWN", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
-                        }
+                    if (portal.canTeleport()) {
+                        g.setColor(Color.GREEN);
+                        g.drawString("PRESS SPACE TO TELEPORT", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
                     } else {
-                        g.setColor(Color.ORANGE);
-                        g.drawString("ENTER PORTAL", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
+                        g.setColor(Color.RED);
+                        g.drawString("COOLDOWN", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
                     }
+                } else {
+                    g.setColor(Color.ORANGE);
+                    g.drawString("GET CLOSER TO TELEPORT", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
                 }
+            }
+            
+            int collisionDistance = GameConfig.PORTAL_SIZE / 2 + GameConfig.PLAYER_SIZE / 2 + 20;
+            if (distance < collisionDistance) {
+                g.setColor(Color.RED);
+                g.drawOval(screenX - 15, screenY - 15, GameConfig.PORTAL_SIZE + 30, GameConfig.PORTAL_SIZE + 30);
+                g.setColor(Color.WHITE);
+                g.drawString("COLLISION ZONE", screenX, screenY + GameConfig.PORTAL_SIZE + 40);
             }
         }
     }
@@ -334,7 +378,8 @@ public class GamePanel extends JPanel {
             currentPortal = null;
             
             for (Portal portal : portals.values()) {
-                if (portal.isPlayerInside(mainPlayer)) {
+                boolean isInside = portal.isPlayerInside(mainPlayer);
+                if (isInside) {
                     isInsidePortal = true;
                     currentPortal = portal;
                     break;
@@ -343,11 +388,69 @@ public class GamePanel extends JPanel {
         }
     }
     
+    public void checkPlayerMovement() {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer != null) {
+            for (Portal portal : portals.values()) {
+                int playerCenterX = mainPlayer.x + GameConfig.PLAYER_SIZE / 2;
+                int playerCenterY = mainPlayer.y + GameConfig.PLAYER_SIZE / 2;
+                int portalCenterX = portal.x + GameConfig.PORTAL_SIZE / 2;
+                int portalCenterY = portal.y + GameConfig.PORTAL_SIZE / 2;
+                
+                int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
+                int minDistance = GameConfig.PORTAL_SIZE / 2 + GameConfig.PLAYER_SIZE / 2 + 20;
+                
+                if (distance < minDistance) {
+                    int dx = playerCenterX - portalCenterX;
+                    int dy = playerCenterY - portalCenterY;
+                    
+                    if (dx != 0 || dy != 0) {
+                        double angle = Math.atan2(dy, dx);
+                        int pushX = (int) (Math.cos(angle) * minDistance);
+                        int pushY = (int) (Math.sin(angle) * minDistance);
+                        
+                        mainPlayer.setPosition(portalCenterX + pushX - GameConfig.PLAYER_SIZE / 2, 
+                                             portalCenterY + pushY - GameConfig.PLAYER_SIZE / 2);
+                    }
+                }
+            }
+        }
+    }
+    
+    private void preventPlayerFromWalkingThroughPortal(Player player) {
+        for (Portal portal : portals.values()) {
+            int playerCenterX = player.x + GameConfig.PLAYER_SIZE / 2;
+            int playerCenterY = player.y + GameConfig.PLAYER_SIZE / 2;
+            int portalCenterX = portal.x + GameConfig.PORTAL_SIZE / 2;
+            int portalCenterY = portal.y + GameConfig.PORTAL_SIZE / 2;
+            
+            int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
+            int minDistance = GameConfig.PORTAL_SIZE / 2 + GameConfig.PLAYER_SIZE / 2 + 20;
+            
+            if (distance < minDistance) {
+                int dx = playerCenterX - portalCenterX;
+                int dy = playerCenterY - portalCenterY;
+                
+                if (dx != 0 || dy != 0) {
+                    double angle = Math.atan2(dy, dx);
+                    int pushX = (int) (Math.cos(angle) * minDistance);
+                    int pushY = (int) (Math.sin(angle) * minDistance);
+                    
+                    player.x = portalCenterX + pushX - GameConfig.PLAYER_SIZE / 2;
+                    player.y = portalCenterY + pushY - GameConfig.PLAYER_SIZE / 2;
+                }
+            }
+        }
+    }
+    
     public void teleportPlayer() {
         if (isInsidePortal && currentPortal != null && currentPortal.canTeleport()) {
-            currentPortal.teleportPlayer(players.get(playerId));
-            showTeleportEffect = true;
-            teleportEffectTime = System.currentTimeMillis();
+            Player mainPlayer = players.get(playerId);
+            if (mainPlayer != null) {
+                currentPortal.teleportPlayer(mainPlayer);
+                showTeleportEffect = true;
+                teleportEffectTime = System.currentTimeMillis();
+            }
         }
     }
     
@@ -365,6 +468,28 @@ public class GamePanel extends JPanel {
                 g.drawString("TELEPORTING...", getWidth() / 2 - 150, getHeight() / 2);
             }
         }
+    }
+    
+    private void drawTeleportStatus(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        
+        String status = "Teleport Status: ";
+        if (isInsidePortal && currentPortal != null) {
+            status += "INSIDE " + currentPortal.id;
+            if (currentPortal.canTeleport()) {
+                status += " - READY";
+                g.setColor(Color.GREEN);
+            } else {
+                status += " - COOLDOWN";
+                g.setColor(Color.RED);
+            }
+        } else {
+            status += "NOT INSIDE";
+            g.setColor(Color.YELLOW);
+        }
+        
+        g.drawString(status, 20, 100);
     }
     
     private void updateAnimation() {
