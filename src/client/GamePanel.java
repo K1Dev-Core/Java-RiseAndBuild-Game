@@ -19,7 +19,9 @@ public class GamePanel extends JPanel {
     private int attackAnimationFrame = 0;
     private Map<String, Integer> playerAttackFrames = new HashMap<>();
     private AudioClip slashSound;
+    private AudioClip footstepSound;
     private long lastAttackTime = 0;
+    private boolean isPlayingFootstep = false;
     
     public GamePanel() {
         setFocusable(true);
@@ -59,12 +61,17 @@ public class GamePanel extends JPanel {
     
     private void loadSounds() {
         try {
-            File soundFile = new File("./assets/sounds/slash1.wav");
-            if (soundFile.exists()) {
-                slashSound = java.applet.Applet.newAudioClip(soundFile.toURI().toURL());
+            File slashFile = new File("./assets/sounds/slash1.wav");
+            if (slashFile.exists()) {
+                slashSound = java.applet.Applet.newAudioClip(slashFile.toURI().toURL());
+            }
+            
+            File footstepFile = new File("./assets/sounds/footsteps.wav");
+            if (footstepFile.exists()) {
+                footstepSound = java.applet.Applet.newAudioClip(footstepFile.toURI().toURL());
             }
         } catch (Exception e) {
-            System.out.println("Could not load slash sound: " + e.getMessage());
+            System.out.println("Could not load sounds: " + e.getMessage());
         }
     }
 
@@ -81,6 +88,20 @@ public class GamePanel extends JPanel {
     private void playSlashSound() {
         if (slashSound != null) {
             slashSound.play();
+        }
+    }
+    
+    private void playFootstepSound() {
+        if (footstepSound != null && !isPlayingFootstep) {
+            footstepSound.loop();
+            isPlayingFootstep = true;
+        }
+    }
+    
+    private void stopFootstepSound() {
+        if (footstepSound != null && isPlayingFootstep) {
+            footstepSound.stop();
+            isPlayingFootstep = false;
         }
     }
     
@@ -172,6 +193,14 @@ public class GamePanel extends JPanel {
     private void drawPlayer(Graphics g, Player p) {
         String key = p.state + "_" + p.direction;
         Image img = sprites.get(key);
+        
+        if (p.id.equals(playerId)) {
+            if (p.state.equals("run")) {
+                playFootstepSound();
+            } else {
+                stopFootstepSound();
+            }
+        }
         
         if (img != null) {
             int frameWidth = img.getWidth(null) / GameConfig.ANIMATION_FRAMES;
