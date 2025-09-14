@@ -26,8 +26,15 @@ public class Player {
                 case "right": x += GameConfig.MOVE_SPEED; break;
             }
             
-            x = Math.max(0, Math.min(x, GameConfig.WIDTH - GameConfig.PLAYER_SIZE));
-            y = Math.max(0, Math.min(y, GameConfig.HEIGHT - GameConfig.PLAYER_SIZE));
+            int maxX = GameConfig.MAP_WIDTH - GameConfig.PLAYER_SIZE;
+            int maxY = GameConfig.MAP_HEIGHT - GameConfig.PLAYER_SIZE;
+            
+            if (x > maxX || y > maxY) {
+                System.out.println("Boundary check: x=" + x + " maxX=" + maxX + " y=" + y + " maxY=" + maxY);
+            }
+            
+            x = Math.max(0, Math.min(x, maxX));
+            y = Math.max(0, Math.min(y, maxY));
         }
     }
     
