@@ -24,7 +24,7 @@ public class GamePanel extends JPanel {
     private boolean isPlayingFootstep = false;
     private int cameraX = 0;
     private int cameraY = 0;
-    private float zoom = 1.0f;
+    private float zoom = 1.5f;
     
     public GamePanel() {
         setFocusable(true);
@@ -117,10 +117,13 @@ public class GamePanel extends JPanel {
             synchronized(players) {
                 for (Player p : players.values()) {
                     if (p.id.equals(playerId)) {
-                        int barWidth = 40;
-                        int barHeight = 4;
-                        int x = p.x + (GameConfig.PLAYER_SIZE - barWidth) / 2;
-                        int y = p.y + 50;
+                        int barWidth = (int)(40 * zoom);
+                        int barHeight = (int)(4 * zoom);
+                        int screenX = (int)((p.x - cameraX) * zoom);
+                        int screenY = (int)((p.y - cameraY) * zoom);
+                        int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
+                        int x = screenX + (scaledSize - barWidth) / 2;
+                        int y = screenY + (int)(50 * zoom);
                         
                         g.setColor(Color.GRAY);
                         g.fillRect(x, y, barWidth, barHeight);
@@ -140,11 +143,14 @@ public class GamePanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        updateCamera();
         updateAnimation();
         updateAttackFeedback();
         
         g.setColor(new Color(40, 40, 40));
         g.fillRect(0, 0, getWidth(), getHeight());
+        
+        drawGridBackground(g);
         
         
         synchronized(players) {
@@ -168,6 +174,35 @@ public class GamePanel extends JPanel {
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.drawString("WASD - Move | Mouse Click - Attack | ESC - Exit", 20, 30);
     }
+    
+    private void drawGridBackground(Graphics g) {
+        g.setColor(new Color(60, 60, 60));
+        int gridSize = (int)(50 * zoom);
+        
+        int startX = (int)(-cameraX * zoom) % gridSize;
+        int startY = (int)(-cameraY * zoom) % gridSize;
+        
+        for (int x = startX; x < getWidth() + gridSize; x += gridSize) {
+            g.drawLine(x, 0, x, getHeight());
+        }
+        
+        for (int y = startY; y < getHeight() + gridSize; y += gridSize) {
+            g.drawLine(0, y, getWidth(), y);
+        }
+    }
+    
+    private void updateCamera() {
+        synchronized(players) {
+            for (Player p : players.values()) {
+                if (p.id.equals(playerId)) {
+                    cameraX = p.x - getWidth() / 2;
+                    cameraY = p.y - getHeight() / 2;
+                    break;
+                }
+            }
+        }
+    }
+    
     
     private void updateAnimation() {
         long currentTime = System.currentTimeMillis();
@@ -226,8 +261,12 @@ public class GamePanel extends JPanel {
             int srcX = currentFrame * frameWidth;
             int srcY = 0;
             
+            int screenX = (int)((p.x - cameraX) * zoom);
+            int screenY = (int)((p.y - cameraY) * zoom);
+            int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
+            
             g.drawImage(img, 
-                p.x, p.y, p.x + GameConfig.PLAYER_SIZE, p.y + GameConfig.PLAYER_SIZE,
+                screenX, screenY, screenX + scaledSize, screenY + scaledSize,
                 srcX, srcY, srcX + frameWidth, srcY + frameHeight,
                 null);
                 
@@ -239,12 +278,21 @@ public class GamePanel extends JPanel {
             } else if (!p.canAttack) {
                 status += " (COOLDOWN)";
             }
-            g.drawString(status, p.x, p.y - 5);
+            g.drawString(status, screenX, screenY - 5);
+            
+            if (p.id.equals(playerId)) {
+                g.setColor(Color.YELLOW);
+                g.setFont(new Font("Arial", Font.BOLD, 12));
+                g.drawString("X: " + p.x + " Y: " + p.y, screenX, screenY + scaledSize + 15);
+            }
         } else {
+            int screenX = (int)((p.x - cameraX) * zoom);
+            int screenY = (int)((p.y - cameraY) * zoom);
+            int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
             g.setColor(Color.BLUE);
-            g.fillRect(p.x, p.y, GameConfig.PLAYER_SIZE, GameConfig.PLAYER_SIZE);
+            g.fillRect(screenX, screenY, scaledSize, scaledSize);
             g.setColor(Color.WHITE);
-            g.drawString(p.id + " - " + p.state, p.x, p.y - 5);
+            g.drawString(p.id + " - " + p.state, screenX, screenY - 5);
         }
     }
     
