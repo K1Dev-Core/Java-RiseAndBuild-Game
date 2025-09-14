@@ -115,7 +115,7 @@ public class GamePanel extends JPanel {
                     if (p.id.equals(playerId)) {
                         int barWidth = (int)(40 * zoom);
                         int barHeight = (int)(4 * zoom);
-                        int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
+                        int scaledSize = 64; // ใช้ขนาดเดียวกับตาราง
                         int x = getWidth() / 2 - barWidth / 2;
                         int y = getHeight() / 2 + scaledSize / 2 + 20;
                         
@@ -206,8 +206,8 @@ public class GamePanel extends JPanel {
         // คำนวณตำแหน่งกล้องตามตัวละคร
         Player mainPlayer = players.get(playerId);
         if (mainPlayer != null) {
-            int cameraX = (int)(mainPlayer.x * zoom) - getWidth() / 2;
-            int cameraY = (int)(mainPlayer.y * zoom) - getHeight() / 2;
+            int cameraX = mainPlayer.x - getWidth() / 2;
+            int cameraY = mainPlayer.y - getHeight() / 2;
             
             // วาดตารางที่เคลื่อนไหวตามกล้อง
             int gridSize = 64;
@@ -336,7 +336,7 @@ public class GamePanel extends JPanel {
             int srcX = currentFrame * frameWidth;
             int srcY = 0;
             
-            int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
+            int scaledSize = 64; // ใช้ขนาดเดียวกับตาราง
             int screenX, screenY;
             
             if (p.id.equals(playerId)) {
@@ -347,8 +347,8 @@ public class GamePanel extends JPanel {
                 if (mainPlayer != null) {
                     int relativeX = p.x - mainPlayer.x;
                     int relativeY = p.y - mainPlayer.y;
-                    screenX = getWidth() / 2 + (int)(relativeX * zoom) - scaledSize / 2;
-                    screenY = getHeight() / 2 + (int)(relativeY * zoom) - scaledSize / 2;
+                    screenX = getWidth() / 2 + relativeX - scaledSize / 2;
+                    screenY = getHeight() / 2 + relativeY - scaledSize / 2;
                 } else {
                     screenX = getWidth() / 2;
                     screenY = getHeight() / 2;
@@ -389,7 +389,7 @@ public class GamePanel extends JPanel {
                 g.drawString(status, getWidth() - textWidth - 20, getHeight() - 20);
             }
         } else {
-            int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
+            int scaledSize = 64; // ใช้ขนาดเดียวกับตาราง
             int screenX, screenY;
             
             if (p.id.equals(playerId)) {
@@ -400,8 +400,8 @@ public class GamePanel extends JPanel {
                 if (mainPlayer != null) {
                     int relativeX = p.x - mainPlayer.x;
                     int relativeY = p.y - mainPlayer.y;
-                    screenX = getWidth() / 2 + (int)(relativeX * zoom) - scaledSize / 2;
-                    screenY = getHeight() / 2 + (int)(relativeY * zoom) - scaledSize / 2;
+                    screenX = getWidth() / 2 + relativeX - scaledSize / 2;
+                    screenY = getHeight() / 2 + relativeY - scaledSize / 2;
                 } else {
                     screenX = getWidth() / 2;
                     screenY = getHeight() / 2;
