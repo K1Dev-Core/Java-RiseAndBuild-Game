@@ -120,6 +120,8 @@ public class GameClient extends JFrame {
                     panel.requestFocus();
                 } else if (line.startsWith("PLAYERS:")) {
                     updatePlayers(line.substring(8));
+                } else if (line.startsWith("PORTALS:")) {
+                    updatePortals(line.substring(8));
                 }
             }
         } catch (IOException e) {
@@ -135,6 +137,19 @@ public class GameClient extends JFrame {
                 if (!p.isEmpty()) {
                     Player pl = Player.fromString(p);
                     players.put(pl.id, pl);
+                }
+            }
+        }
+    }
+    
+    private void updatePortals(String data) {
+        synchronized(panel.getPortals()) {
+            panel.getPortals().clear();
+            String[] all = data.split(";");
+            for (String p : all) {
+                if (!p.isEmpty()) {
+                    Portal portal = Portal.fromString(p);
+                    panel.getPortals().put(portal.id, portal);
                 }
             }
         }

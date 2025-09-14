@@ -16,4 +16,6 @@ public class GameConfig {
     public static final int MOVE_SPEED = 4;
     public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 200;
+    public static final int PORTAL_SIZE = 64;
+    public static final int PORTAL_ANIMATION_FRAMES = 6;
 }

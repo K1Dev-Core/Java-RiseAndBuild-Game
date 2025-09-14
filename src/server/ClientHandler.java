@@ -1,6 +1,7 @@
 package server;
 
 import common.Player;
+import common.Portal;
 import common.GameConfig;
 import java.io.*;
 import java.net.*;
@@ -13,13 +14,17 @@ public class ClientHandler implements Runnable {
     private String playerId;
     private Map<String, Player> players;
     private List<ClientHandler> clients;
+    private Map<String, Portal> portals;
 
     public ClientHandler(Socket socket, Map<String, Player> players, List<ClientHandler> clients) throws IOException {
         this.socket = socket;
         this.players = players;
         this.clients = clients;
+        this.portals = new HashMap<>();
         this.out = new PrintWriter(socket.getOutputStream(), true);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        
+        createPortals();
     }
 
     @Override
@@ -31,6 +36,7 @@ public class ClientHandler implements Runnable {
 
             out.println("ID:" + playerId);
             broadcast();
+            broadcastPortals();
 
             String input;
             while ((input = in.readLine()) != null) {
@@ -69,6 +75,26 @@ public class ClientHandler implements Runnable {
             sb.append(p.toString()).append(";");
         }
         String msg = "PLAYERS:" + sb.toString();
+        
+        for (ClientHandler c : clients) {
+            c.send(msg);
+        }
+    }
+    
+    private void createPortals() {
+        Portal portalA = new Portal("PortalA", 1000, 1000, 3000, 3000, "PortalB");
+        Portal portalB = new Portal("PortalB", 3000, 3000, 1000, 1000, "PortalA");
+        
+        portals.put("PortalA", portalA);
+        portals.put("PortalB", portalB);
+    }
+    
+    private void broadcastPortals() {
+        StringBuilder sb = new StringBuilder();
+        for (Portal p : portals.values()) {
+            sb.append(p.toString()).append(";");
+        }
+        String msg = "PORTALS:" + sb.toString();
         
         for (ClientHandler c : clients) {
             c.send(msg);

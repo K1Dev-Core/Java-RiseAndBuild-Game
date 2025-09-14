@@ -1,16 +1,18 @@
 package client;
 
 import common.*;
+import java.applet.AudioClip;
 import java.awt.*;
+import java.io.File;
 import java.util.*;
 import javax.swing.*;
-import java.applet.AudioClip;
-import java.io.File;
 
 public class GamePanel extends JPanel {
     private Map<String, Player> players;
     private String playerId;
     private Map<String, Image> sprites = new HashMap<>();
+    private Map<String, Portal> portals = new HashMap<>();
+    private Image portalSprite;
     private int animationFrame = 0;
     private long lastFrameTime = 0;
     private long attackFeedbackTime = 0;
@@ -32,6 +34,10 @@ public class GamePanel extends JPanel {
     public void setPlayerId(String playerId) {
         this.playerId = playerId;
     }
+    
+    public Map<String, Portal> getPortals() {
+        return portals;
+    }
 
     public GamePanel(Map<String, Player> players, String playerId) {
         this();
@@ -39,6 +45,7 @@ public class GamePanel extends JPanel {
         this.playerId = playerId;
         loadSprites();
         loadSounds();
+        createPortals();
     }
 
     private void loadSprites() {
@@ -58,6 +65,20 @@ public class GamePanel extends JPanel {
                 }
             }
         }
+        
+        try {
+            portalSprite = javax.imageio.ImageIO.read(new File("assets/sprites/obj/portal/Isometric_Portal.png"));
+        } catch (Exception e) {
+            System.out.println("Could not load portal sprite: " + e.getMessage());
+        }
+    }
+    
+    private void createPortals() {
+        Portal portalA = new Portal("PortalA", 1000, 1000, 3000, 3000, "PortalB");
+        Portal portalB = new Portal("PortalB", 3000, 3000, 1000, 1000, "PortalA");
+        
+        portals.put("PortalA", portalA);
+        portals.put("PortalB", portalB);
     }
     
     private void loadSounds() {
@@ -164,6 +185,8 @@ public class GamePanel extends JPanel {
         drawInstructions(g);
         drawPlayerCoordinates(g);
         drawMapBoundaries(g);
+        drawPortals(g);
+        checkPortalTeleport();
     }
     
     private void drawInstructions(Graphics g) {
@@ -242,7 +265,49 @@ public class GamePanel extends JPanel {
         }
     }
     
+    private void drawPortals(Graphics g) {
+        for (Portal portal : portals.values()) {
+            portal.updateAnimation();
+            
+            Player mainPlayer = players.get(playerId);
+            if (mainPlayer != null) {
+                int relativeX = portal.x - mainPlayer.x;
+                int relativeY = portal.y - mainPlayer.y;
+                int screenX = getWidth() / 2 + (int)(relativeX * zoom) - GameConfig.PORTAL_SIZE / 2;
+                int screenY = getHeight() / 2 + (int)(relativeY * zoom) - GameConfig.PORTAL_SIZE / 2;
+                
+                if (portalSprite != null) {
+                    int frameWidth = portalSprite.getWidth(null) / GameConfig.PORTAL_ANIMATION_FRAMES;
+                    int frameHeight = portalSprite.getHeight(null);
+                    int srcX = portal.animationFrame * frameWidth;
+                    int srcY = 0;
+                    
+                    g.drawImage(portalSprite, 
+                        screenX, screenY, screenX + GameConfig.PORTAL_SIZE, screenY + GameConfig.PORTAL_SIZE,
+                        srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                        null);
+                } else {
+                    g.setColor(Color.MAGENTA);
+                    g.fillOval(screenX, screenY, GameConfig.PORTAL_SIZE, GameConfig.PORTAL_SIZE);
+                }
+                
+                g.setColor(Color.WHITE);
+                g.drawString(portal.id, screenX, screenY - 10);
+            }
+        }
+    }
     
+    private void checkPortalTeleport() {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer != null) {
+            for (Portal portal : portals.values()) {
+                if (portal.isPlayerNear(mainPlayer)) {
+                    portal.teleportPlayer(mainPlayer);
+                    break;
+                }
+            }
+        }
+    }
     
     private void updateAnimation() {
         long currentTime = System.currentTimeMillis();
