@@ -96,7 +96,7 @@ public class GamePanel extends JPanel {
                         int barWidth = 40;
                         int barHeight = 4;
                         int x = p.x + (GameConfig.PLAYER_SIZE - barWidth) / 2;
-                        int y = p.y - 10;
+                        int y = p.y + 50;
                         
                         g.setColor(Color.GRAY);
                         g.fillRect(x, y, barWidth, barHeight);
@@ -192,12 +192,6 @@ public class GamePanel extends JPanel {
                 srcX, srcY, srcX + frameWidth, srcY + frameHeight,
                 null);
                 
-            if (p.state.equals("attack2")) {
-                g.setColor(Color.YELLOW);
-            } else {
-                g.setColor(Color.RED);
-            }
-            g.drawRect(p.x, p.y, GameConfig.PLAYER_SIZE, GameConfig.PLAYER_SIZE);
             
             g.setColor(Color.WHITE);
             String status = p.id + " - " + p.state + " F:" + currentFrame;
