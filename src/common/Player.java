@@ -32,16 +32,36 @@ public class Player {
             int maxX = GameConfig.MAP_WIDTH - GameConfig.PLAYER_SIZE;
             int maxY = GameConfig.MAP_HEIGHT - GameConfig.PLAYER_SIZE;
             
-            if (newX > maxX || newY > maxY) {
-                System.out.println("Boundary check: x=" + newX + " maxX=" + maxX + " y=" + newY + " maxY=" + maxY);
-            }
-            
             newX = Math.max(0, Math.min(newX, maxX));
             newY = Math.max(0, Math.min(newY, maxY));
             
             x = newX;
             y = newY;
         }
+    }
+    
+    public boolean moveWithCollision(String dir, Object mapLoader) {
+        if (!state.equals("attack2")) {
+            this.state = "run";
+            this.direction = dir;
+            
+            int newX = x;
+            int newY = y;
+            
+            switch (dir) {
+                case "up":    newY -= GameConfig.MOVE_SPEED; break;
+                case "down":  newY += GameConfig.MOVE_SPEED; break;
+                case "left":  newX -= GameConfig.MOVE_SPEED; break;
+                case "right": newX += GameConfig.MOVE_SPEED; break;
+            }
+            
+            // ไม่มีการตรวจสอบ collision - วิ่งได้เรื่อยๆ
+            
+            x = newX;
+            y = newY;
+            return true;
+        }
+        return false;
     }
     
     

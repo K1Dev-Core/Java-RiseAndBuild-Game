@@ -84,8 +84,13 @@ public class GameClient extends JFrame {
 
     private void setupGameTimer() {
         gameTimer = new javax.swing.Timer(16, e -> {
-            handleMovement();
-            panel.repaint();
+            SwingUtilities.invokeLater(() -> {
+                panel.updateGame();
+                handleMovement();
+                if (panel.isDisplayable() && panel.isShowing()) {
+                    panel.repaint();
+                }
+            });
         });
         gameTimer.start();
     }

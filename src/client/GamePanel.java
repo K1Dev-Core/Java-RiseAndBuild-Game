@@ -16,18 +16,42 @@ public class GamePanel extends JPanel {
     private boolean showAttackFeedback = false;
     private final Map<String, Integer> playerAttackFrames = new HashMap<>();
     private long lastAttackTime = 0;
-    private final float zoom = 5.0f;
-    private boolean gridInitialized = false;
+    private final float zoom = 1.0f;
     private SoundManager soundManager;
     private boolean gameStarted = false;
+    private boolean needsRepaint = false;
+    private int fps = 0;
+    private long lastFpsTime = 0;
+    private int frameCount = 0;
     
     public GamePanel() {
         setFocusable(true);
         setRequestFocusEnabled(true);
+        setDoubleBuffered(true);
+        setOpaque(true);
+        setBackground(Color.BLACK);
+        setIgnoreRepaint(false);
+        
+        System.setProperty("sun.java2d.opengl", "false");
+        System.setProperty("sun.java2d.d3d", "false");
+        System.setProperty("sun.java2d.noddraw", "true");
     }
     
     public void setPlayerId(String playerId) {
         this.playerId = playerId;
+    }
+    
+    public void updateGame() {
+        if (!isDisplayable() || !isShowing()) {
+            return;
+        }
+        updateAnimation();
+        updateAttackFeedback();
+        updateFPS();
+    }
+    
+    public void requestRepaint() {
+        needsRepaint = true;
     }
     
 
@@ -80,7 +104,7 @@ public class GamePanel extends JPanel {
     
     
     
-    private void drawCooldownBar(Graphics g) {
+    private void drawCooldownBar(Graphics2D g2d) {
         long currentTime = System.currentTimeMillis();
         long elapsed = currentTime - lastAttackTime;
         long totalCooldown = GameConfig.ATTACK_DURATION + GameConfig.ATTACK_COOLDOWN;
@@ -95,14 +119,15 @@ public class GamePanel extends JPanel {
                         int x = getWidth() / 2 - barWidth / 2;
                         int y = getHeight() / 2 + scaledSize / 2 + 20;
                         
-                        g.setColor(Color.GRAY);
-                        g.fillRect(x, y, barWidth, barHeight);
+                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                        g2d.setColor(new Color(100, 100, 100, 255));
+                        g2d.fillRect(x, y, barWidth, barHeight);
                         
                         float progress = (float) elapsed / totalCooldown;
                         int fillWidth = (int) (barWidth * progress);
                         
-                        g.setColor(Color.RED);
-                        g.fillRect(x, y, fillWidth, barHeight);
+                        g2d.setColor(new Color(255, 100, 100, 255));
+                        g2d.fillRect(x, y, fillWidth, barHeight);
                         break;
                     }
                 }
@@ -113,108 +138,121 @@ public class GamePanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        updateAnimation();
-        updateAttackFeedback();
         
-        drawGridBackground(g);
-        drawGridSquares(g);
-        
-        synchronized(players) {
-            for (Player p : players.values()) {
-                drawPlayer(g, p);
+        Graphics2D g2d = (Graphics2D) g.create();
+        try {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+            g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+            g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+            g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+            g2d.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
+            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            
+            g2d.setComposite(AlphaComposite.SrcOver);
+            
+            drawBackground(g2d);
+            
+            synchronized(players) {
+                for (Player p : players.values()) {
+                    drawPlayer(g2d, p);
+                }
             }
+            
+      
+            
+            drawCooldownBar(g2d);
+            drawPlayerCoordinates(g2d);
+            drawFPS(g2d);
+        } finally {
+            g2d.dispose();
         }
-        
-        if (showAttackFeedback) {
-            g.setColor(Color.RED);
-            g.setFont(new Font("Arial", Font.BOLD, 24));
-            g.drawString("ATTACK!", 50, 50);
-        }
-        
-        drawCooldownBar(g);
-        drawInstructions(g);
-        drawPlayerCoordinates(g);
     }
     
-    private void drawInstructions(Graphics g) {
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString("WASD - Move | Mouse Click - Attack | ESC - Exit", 20, 30);
-    }
     
-    private void drawPlayerCoordinates(Graphics g) {
+    private void drawPlayerCoordinates(Graphics2D g2d) {
         synchronized(players) {
             for (Player p : players.values()) {
                 if (p.id.equals(playerId)) {
-                    g.setColor(Color.CYAN);
-                    g.setFont(new Font("Arial", Font.BOLD, 18));
-                    String coords = "Position: X=" + p.x + " Y=" + p.y;
-                    int textWidth = g.getFontMetrics().stringWidth(coords);
-                    g.drawString(coords, getWidth() - textWidth - 20, 30);
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                    g2d.setColor(new Color(255, 255, 255, 255));
+                    g2d.setFont(new Font("Arial", Font.BOLD, 10));
+                    String coords = "X: " + p.x + " Y: " + p.y;
+                    int textWidth = g2d.getFontMetrics().stringWidth(coords);
+                    g2d.drawString(coords, getWidth() - textWidth - 20, getHeight() - 40);
                     break;
                 }
             }
         }
     }
     
-    
-    private void drawGridBackground(Graphics g) {
-        if (!gridInitialized) {
-            gridInitialized = true;
-        }
-        
-        g.setColor(new Color(30, 30, 30));
-        g.fillRect(0, 0, getWidth(), getHeight());
+    private void drawFPS(Graphics2D g2d) {
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+        g2d.setColor(new Color(0, 255, 0, 255));
+        g2d.setFont(new Font("Arial", Font.BOLD, 12));
+        String fpsText = "FPS: " + fps;
+        g2d.drawString(fpsText, 20, getHeight() - 20);
     }
     
-    private void drawGridSquares(Graphics g) {
+    private void drawBackground(Graphics2D g2d) {
+        // วาดพื้นหลังสีเขียวเข้ม
+        g2d.setColor(new Color(20, 40, 20));
+        g2d.fillRect(0, 0, getWidth(), getHeight());
+        
+        // คำนวณตำแหน่งกล้องตามตัวละคร
         Player mainPlayer = players.get(playerId);
-        if (mainPlayer == null) return;
-        
-        int mapLeft = getWidth() / 2 - (int)(mainPlayer.x * zoom);
-        int mapTop = getHeight() / 2 - (int)(mainPlayer.y * zoom);
-        
-        int gridSize = 64;
-        
-        int startX = (mapLeft / gridSize) * gridSize;
-        int startY = (mapTop / gridSize) * gridSize;
-        int endX = startX + getWidth() + gridSize;
-        int endY = startY + getHeight() + gridSize;
-        
-        g.setColor(new Color(60, 60, 60, 100));
-        for (int x = startX; x <= endX; x += gridSize) {
-            int screenX = x - mapLeft;
-            if (screenX >= 0 && screenX <= getWidth()) {
-                g.drawLine(screenX, 0, screenX, getHeight());
+        if (mainPlayer != null) {
+            int cameraX = (int)(mainPlayer.x * zoom) - getWidth() / 2;
+            int cameraY = (int)(mainPlayer.y * zoom) - getHeight() / 2;
+            
+            // วาดตารางที่เคลื่อนไหวตามกล้อง
+            int gridSize = 64;
+            int startX = (cameraX / gridSize) * gridSize;
+            int startY = (cameraY / gridSize) * gridSize;
+            
+            for (int x = startX; x < startX + getWidth() + gridSize; x += gridSize) {
+                for (int y = startY; y < startY + getHeight() + gridSize; y += gridSize) {
+                    int screenX = x - cameraX;
+                    int screenY = y - cameraY;
+                    
+                    // สลับสีระหว่างช่อง
+                    if (((x / gridSize) + (y / gridSize)) % 2 == 0) {
+                        g2d.setColor(new Color(40, 80, 40));  // สีเขียว
+                    } else {
+                        g2d.setColor(new Color(60, 50, 30));  // สีน้ำตาล
+                    }
+                    g2d.fillRect(screenX, screenY, gridSize, gridSize);
+                    
+                    // วาดขอบตาราง
+                    g2d.setColor(new Color(30, 30, 30));
+                    g2d.drawRect(screenX, screenY, gridSize, gridSize);
+                }
+            }
+        } else {
+            // วาดตารางธรรมดาเมื่อไม่มีตัวละคร
+            int gridSize = 64;
+            for (int x = 0; x < getWidth(); x += gridSize) {
+                for (int y = 0; y < getHeight(); y += gridSize) {
+                    if (((x / gridSize) + (y / gridSize)) % 2 == 0) {
+                        g2d.setColor(new Color(40, 80, 40));
+                    } else {
+                        g2d.setColor(new Color(60, 50, 30));
+                    }
+                    g2d.fillRect(x, y, gridSize, gridSize);
+                    
+                    g2d.setColor(new Color(30, 30, 30));
+                    g2d.drawRect(x, y, gridSize, gridSize);
+                }
             }
         }
-        
-        for (int y = startY; y <= endY; y += gridSize) {
-            int screenY = y - mapTop;
-            if (screenY >= 0 && screenY <= getHeight()) {
-                g.drawLine(0, screenY, getWidth(), screenY);
-            }
-        }
-        
-        g.setColor(new Color(255, 100, 100, 150));
-        int mapRight = mapLeft + (int)(GameConfig.MAP_WIDTH * zoom);
-        int mapBottom = mapTop + (int)(GameConfig.MAP_HEIGHT * zoom);
-        
-        if (mapLeft < getWidth() && mapRight > 0) {
-            g.drawLine(mapLeft, 0, mapLeft, getHeight());
-            g.drawLine(mapRight, 0, mapRight, getHeight());
-        }
-        
-        if (mapTop < getHeight() && mapBottom > 0) {
-            g.drawLine(0, mapTop, getWidth(), mapTop);
-            g.drawLine(0, mapBottom, getWidth(), mapBottom);
-        }
-        
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 12));
-        String gridInfo = "Grid: 64x64 | Map: " + GameConfig.MAP_WIDTH + "x" + GameConfig.MAP_HEIGHT;
-        g.drawString(gridInfo, 20, getHeight() - 40);
     }
+    
+    
+    
     
     
     
@@ -269,6 +307,17 @@ public class GamePanel extends JPanel {
         }
     }
     
+    private void updateFPS() {
+        long currentTime = System.currentTimeMillis();
+        frameCount++;
+        
+        if (currentTime - lastFpsTime >= 1000) {
+            fps = frameCount;
+            frameCount = 0;
+            lastFpsTime = currentTime;
+        }
+    }
+    
     private void drawPlayer(Graphics g, Player p) {
         String key = p.state + "_" + p.direction;
         Image img = sprites.get(key);
@@ -306,25 +355,38 @@ public class GamePanel extends JPanel {
                 }
             }
             
+            if (g instanceof Graphics2D g2d) {
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+                g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+                g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+            }
+            
             g.drawImage(img, 
                 screenX, screenY, screenX + scaledSize, screenY + scaledSize,
                 srcX, srcY, srcX + frameWidth, srcY + frameHeight,
                 null);
                 
             
-            g.setColor(Color.WHITE);
-            String status = p.id + " - " + p.state + " F:" + currentFrame;
-            if (p.state.equals("attack2")) {
-                status += " (ATTACKING)";
-            } else if (!p.canAttack) {
-                status += " (COOLDOWN)";
-            }
-            g.drawString(status, screenX, screenY - 5);
-            
             if (p.id.equals(playerId)) {
-                g.setColor(Color.YELLOW);
-                g.setFont(new Font("Arial", Font.BOLD, 14));
-                g.drawString("X: " + p.x + " Y: " + p.y, screenX, screenY - 20);
+                if (g instanceof Graphics2D g2d) {
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                    g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+                }
+                g.setColor(new Color(255, 255, 255, 255));
+                g.setFont(new Font("Arial", Font.BOLD, 10));
+                String status = p.id + " - " + p.state + " F:" + currentFrame;
+                if (p.state.equals("attack2")) {
+                    status += " (ATTACKING)";
+                } else if (!p.canAttack) {
+                    status += " (COOLDOWN)";
+                }
+                int textWidth = g.getFontMetrics().stringWidth(status);
+                g.drawString(status, getWidth() - textWidth - 20, getHeight() - 20);
             }
         } else {
             int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom);
@@ -346,11 +408,22 @@ public class GamePanel extends JPanel {
                 }
             }
             
-            g.setColor(Color.BLUE);
+            g.setColor(new Color(0, 0, 255, 255));
             g.fillRect(screenX, screenY, scaledSize, scaledSize);
-            g.setColor(Color.WHITE);
+            if (g instanceof Graphics2D g2d) {
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+            }
+            g.setColor(new Color(255, 255, 255, 255));
+            g.setFont(new Font("Arial", Font.BOLD, 10));
             g.drawString(p.id + " - " + p.state, screenX, screenY - 5);
         }
+    }
+    
+    public boolean checkPlayerCollision(Player player, int newX, int newY) {
+        // ไม่มีการตรวจสอบ collision - วิ่งได้เรื่อยๆ
+        return false;
     }
     
     public void cleanup() {
