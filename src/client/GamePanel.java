@@ -233,11 +233,7 @@ public class GamePanel extends JPanel {
             int textHeight = fm.getHeight();
             int x = getWidth() - textWidth - 20; // 20 pixels จากขอบขวา
             int y = 40; // 40 pixels จากขอบบน
-            
-            // วาดพื้นหลังข้อความ (สีดำโปร่งใส)
-            g2d.setColor(new Color(0, 0, 0, 150));
-            g2d.fillRect(x - 10, y - textHeight + 5, textWidth + 20, textHeight + 10);
-            
+
             // วาดข้อความ
             g2d.setColor(new Color(255, 255, 255, 255));
             g2d.drawString(notificationText, x, y);
@@ -359,14 +355,14 @@ public class GamePanel extends JPanel {
             // ตรวจสอบผู้เล่นที่เข้าใหม่
             for (String playerId : currentPlayers) {
                 if (!previousPlayers.contains(playerId) && !playerId.equals(this.playerId)) {
-                    showNotification("Player  " + playerId + " Join");
+                    showNotification("Player  " + playerId + " has joined the game");
                 }
             }
             
             // ตรวจสอบผู้เล่นที่ออกไป
             for (String playerId : previousPlayers) {
                 if (!currentPlayers.contains(playerId) && !playerId.equals(this.playerId)) {
-                    showNotification("Player " + playerId + " Exit");
+                    showNotification("Player " + playerId + " has left the game");
                 }
             }
             
