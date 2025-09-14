@@ -21,6 +21,8 @@ public class GameConfig {
     public static final int PORTAL_TELEPORT_DISTANCE = 128;
     public static final int PORTAL_SAFE_DISTANCE = 128;
     public static final int GRID_SIZE = 64;
+    public static final int PORTAL_GRID_SIZE = 4;
+    public static final int TELEPORT_GRID_DISTANCE = 2;
     
     public static final int[][] PORTAL_POSITIONS = {
         {200, 268, 3000, 3000},

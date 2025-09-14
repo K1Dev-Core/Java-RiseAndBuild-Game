@@ -27,18 +27,23 @@ public class Portal {
     }
     
     public boolean isPlayerNear(Player player) {
-        int distance = (int) Math.sqrt(Math.pow(player.x - x, 2) + Math.pow(player.y - y, 2));
-        return distance < GameConfig.PORTAL_TELEPORT_DISTANCE;
-    }
-    
-    public boolean isPlayerInside(Player player) {
-        int playerCenterX = player.x + GameConfig.PLAYER_SIZE / 2;
-        int playerCenterY = player.y + GameConfig.PLAYER_SIZE / 2;
-        int portalCenterX = x + GameConfig.PORTAL_SIZE / 2;
-        int portalCenterY = y + GameConfig.PORTAL_SIZE / 2;
+        int playerGridX = player.x / GameConfig.GRID_SIZE;
+        int playerGridY = player.y / GameConfig.GRID_SIZE;
+        int portalGridX = x / GameConfig.GRID_SIZE;
+        int portalGridY = y / GameConfig.GRID_SIZE;
         
-        int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
-        return distance < GameConfig.PORTAL_SIZE / 2 + 50;
+        int gridDistance = Math.max(Math.abs(playerGridX - portalGridX), Math.abs(playerGridY - portalGridY));
+        return gridDistance <= GameConfig.TELEPORT_GRID_DISTANCE;
+    }
+
+    public boolean isPlayerInside(Player player) {
+        int playerGridX = player.x / GameConfig.GRID_SIZE;
+        int playerGridY = player.y / GameConfig.GRID_SIZE;
+        int portalGridX = x / GameConfig.GRID_SIZE;
+        int portalGridY = y / GameConfig.GRID_SIZE;
+        
+        return playerGridX >= portalGridX && playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE &&
+               playerGridY >= portalGridY && playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE;
     }
     
     public boolean canTeleport() {

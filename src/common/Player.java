@@ -50,13 +50,13 @@ public class Player {
     }
     
     public boolean canMoveTo(int newX, int newY, int portalX, int portalY, int portalSize) {
-        int playerCenterX = newX + GameConfig.PLAYER_SIZE / 2;
-        int playerCenterY = newY + GameConfig.PLAYER_SIZE / 2;
-        int portalCenterX = portalX + portalSize / 2;
-        int portalCenterY = portalY + portalSize / 2;
+        int playerGridX = newX / GameConfig.GRID_SIZE;
+        int playerGridY = newY / GameConfig.GRID_SIZE;
+        int portalGridX = portalX / GameConfig.GRID_SIZE;
+        int portalGridY = portalY / GameConfig.GRID_SIZE;
         
-        int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
-        return distance >= portalSize / 2 + GameConfig.PLAYER_SIZE / 2 + 10;
+        return !(playerGridX >= portalGridX && playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE &&
+                playerGridY >= portalGridY && playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE);
     }
     
     private boolean isCollidingWithPortal(int newX, int newY) {
@@ -64,13 +64,13 @@ public class Player {
     }
     
     public boolean isCollidingWithPortal(int newX, int newY, int portalX, int portalY, int portalSize) {
-        int playerCenterX = newX + GameConfig.PLAYER_SIZE / 2;
-        int playerCenterY = newY + GameConfig.PLAYER_SIZE / 2;
-        int portalCenterX = portalX + portalSize / 2;
-        int portalCenterY = portalY + portalSize / 2;
+        int playerGridX = newX / GameConfig.GRID_SIZE;
+        int playerGridY = newY / GameConfig.GRID_SIZE;
+        int portalGridX = portalX / GameConfig.GRID_SIZE;
+        int portalGridY = portalY / GameConfig.GRID_SIZE;
         
-        int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
-        return distance < portalSize / 2 + GameConfig.PLAYER_SIZE / 2;
+        return playerGridX >= portalGridX && playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE &&
+               playerGridY >= portalGridY && playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE;
     }
     
 

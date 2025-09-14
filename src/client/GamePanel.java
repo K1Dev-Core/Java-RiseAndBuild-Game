@@ -29,6 +29,7 @@ public class GamePanel extends JPanel {
     private boolean showTeleportEffect = false;
     private boolean isInsidePortal = false;
     private Portal currentPortal = null;
+    private boolean gridInitialized = false;
     
     public GamePanel() {
         setFocusable(true);
@@ -247,39 +248,12 @@ public class GamePanel extends JPanel {
     }
     
     private void drawGridBackground(Graphics g) {
-        Player mainPlayer = players.get(playerId);
-        if (mainPlayer == null) return;
-        
-        int gridSize = (int)(GameConfig.GRID_SIZE * zoom);
-        int startX = getWidth() / 2 - (int)((mainPlayer.x % GameConfig.GRID_SIZE) * zoom);
-        int startY = getHeight() / 2 - (int)((mainPlayer.y % GameConfig.GRID_SIZE) * zoom);
-        
-        g.setColor(new Color(80, 80, 80));
-        for (int x = startX; x < getWidth() + gridSize; x += gridSize) {
-            g.drawLine(x, 0, x, getHeight());
+        if (!gridInitialized) {
+            gridInitialized = true;
         }
         
-        for (int y = startY; y < getHeight() + gridSize; y += gridSize) {
-            g.drawLine(0, y, getWidth(), y);
-        }
-        
-        g.setColor(new Color(120, 120, 120));
-        for (int x = startX; x < getWidth() + gridSize; x += gridSize * 4) {
-            g.drawLine(x, 0, x, getHeight());
-        }
-        
-        for (int y = startY; y < getHeight() + gridSize; y += gridSize * 4) {
-            g.drawLine(0, y, getWidth(), y);
-        }
-        
-        g.setColor(new Color(160, 160, 160));
-        for (int x = startX; x < getWidth() + gridSize; x += gridSize * 8) {
-            g.drawLine(x, 0, x, getHeight());
-        }
-        
-        for (int y = startY; y < getHeight() + gridSize; y += gridSize * 8) {
-            g.drawLine(0, y, getWidth(), y);
-        }
+        g.setColor(new Color(30, 30, 30));
+        g.fillRect(0, 0, getWidth(), getHeight());
     }
     
     private void drawGridSquares(Graphics g) {
@@ -290,21 +264,47 @@ public class GamePanel extends JPanel {
         int startX = getWidth() / 2 - (int)((mainPlayer.x % GameConfig.GRID_SIZE) * zoom);
         int startY = getHeight() / 2 - (int)((mainPlayer.y % GameConfig.GRID_SIZE) * zoom);
         
+        int mapGridWidth = GameConfig.MAP_WIDTH / GameConfig.GRID_SIZE;
+        int mapGridHeight = GameConfig.MAP_HEIGHT / GameConfig.GRID_SIZE;
+        
         for (int x = startX; x < getWidth() + gridSize; x += gridSize) {
             for (int y = startY; y < getHeight() + gridSize; y += gridSize) {
                 int worldX = (x - startX) / gridSize;
                 int worldY = (y - startY) / gridSize;
                 
-                if ((worldX + worldY) % 2 == 0) {
-                    g.setColor(new Color(50, 50, 50));
-                } else {
-                    g.setColor(new Color(40, 40, 40));
+                if (worldX >= 0 && worldX < mapGridWidth && worldY >= 0 && worldY < mapGridHeight) {
+                    if ((worldX + worldY) % 2 == 0) {
+                        g.setColor(new Color(50, 50, 50));
+                    } else {
+                        g.setColor(new Color(40, 40, 40));
+                    }
+                    
+                    g.fillRect(x, y, gridSize, gridSize);
+                    g.setColor(new Color(70, 70, 70));
+                    g.drawRect(x, y, gridSize, gridSize);
                 }
-                
-                g.fillRect(x, y, gridSize, gridSize);
-                
-                g.setColor(new Color(70, 70, 70));
-                g.drawRect(x, y, gridSize, gridSize);
+            }
+        }
+        
+        for (Portal portal : portals.values()) {
+            int portalGridX = portal.x / GameConfig.GRID_SIZE;
+            int portalGridY = portal.y / GameConfig.GRID_SIZE;
+            
+            for (int px = 0; px < GameConfig.PORTAL_GRID_SIZE; px++) {
+                for (int py = 0; py < GameConfig.PORTAL_GRID_SIZE; py++) {
+                    int worldX = portalGridX + px;
+                    int worldY = portalGridY + py;
+                    
+                    if (worldX >= 0 && worldX < mapGridWidth && worldY >= 0 && worldY < mapGridHeight) {
+                        int screenX = startX + worldX * gridSize;
+                        int screenY = startY + worldY * gridSize;
+                        
+                        g.setColor(new Color(100, 50, 100));
+                        g.fillRect(screenX, screenY, gridSize, gridSize);
+                        g.setColor(new Color(150, 100, 150));
+                        g.drawRect(screenX, screenY, gridSize, gridSize);
+                    }
+                }
             }
         }
     }
@@ -339,8 +339,7 @@ public class GamePanel extends JPanel {
             g.setColor(Color.WHITE);
             g.drawString(portal.id, screenX, screenY - 10);
             
-            int distance = (int) Math.sqrt(Math.pow(portal.x - mainPlayer.x, 2) + Math.pow(portal.y - mainPlayer.y, 2));
-            if (distance < GameConfig.PORTAL_TELEPORT_DISTANCE) {
+            if (portal.isPlayerNear(mainPlayer)) {
                 g.setColor(Color.YELLOW);
                 g.drawOval(screenX - 10, screenY - 10, GameConfig.PORTAL_SIZE + 20, GameConfig.PORTAL_SIZE + 20);
                 
@@ -419,26 +418,21 @@ public class GamePanel extends JPanel {
     
     private void preventPlayerFromWalkingThroughPortal(Player player) {
         for (Portal portal : portals.values()) {
-            int playerCenterX = player.x + GameConfig.PLAYER_SIZE / 2;
-            int playerCenterY = player.y + GameConfig.PLAYER_SIZE / 2;
-            int portalCenterX = portal.x + GameConfig.PORTAL_SIZE / 2;
-            int portalCenterY = portal.y + GameConfig.PORTAL_SIZE / 2;
+            int playerGridX = player.x / GameConfig.GRID_SIZE;
+            int playerGridY = player.y / GameConfig.GRID_SIZE;
+            int portalGridX = portal.x / GameConfig.GRID_SIZE;
+            int portalGridY = portal.y / GameConfig.GRID_SIZE;
             
-            int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
-            int minDistance = GameConfig.PORTAL_SIZE / 2 + GameConfig.PLAYER_SIZE / 2 + 20;
-            
-            if (distance < minDistance) {
-                int dx = playerCenterX - portalCenterX;
-                int dy = playerCenterY - portalCenterY;
+            if (playerGridX >= portalGridX && playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE &&
+                playerGridY >= portalGridY && playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE) {
                 
-                if (dx != 0 || dy != 0) {
-                    double angle = Math.atan2(dy, dx);
-                    int pushX = (int) (Math.cos(angle) * minDistance);
-                    int pushY = (int) (Math.sin(angle) * minDistance);
-                    
-                    player.x = portalCenterX + pushX - GameConfig.PLAYER_SIZE / 2;
-                    player.y = portalCenterY + pushY - GameConfig.PLAYER_SIZE / 2;
-                }
+                int pushX = playerGridX < portalGridX + GameConfig.PORTAL_GRID_SIZE / 2 ? 
+                    portalGridX - 1 : portalGridX + GameConfig.PORTAL_GRID_SIZE;
+                int pushY = playerGridY < portalGridY + GameConfig.PORTAL_GRID_SIZE / 2 ? 
+                    portalGridY - 1 : portalGridY + GameConfig.PORTAL_GRID_SIZE;
+                
+                player.x = pushX * GameConfig.GRID_SIZE;
+                player.y = pushY * GameConfig.GRID_SIZE;
             }
         }
     }
