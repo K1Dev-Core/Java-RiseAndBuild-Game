@@ -2,8 +2,8 @@ package common;
 
 public class GameConfig {
     public static final int PORT = 12345;
-    public static final int WIDTH = 800;
-    public static final int HEIGHT = 600;
+    public static final int WIDTH = 1920;
+    public static final int HEIGHT = 1080;
     public static final int PLAYER_SIZE = 256;
     public static final int SPRITE_WIDTH = 22;
     public static final int SPRITE_HEIGHT = 34;

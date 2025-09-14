@@ -25,6 +25,7 @@ public class GameClient extends JFrame {
         setSize(GameConfig.WIDTH, GameConfig.HEIGHT);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        setResizable(false);
 
         socket = new Socket("localhost", GameConfig.PORT);
         out = new PrintWriter(socket.getOutputStream(), true);
@@ -51,6 +52,7 @@ public class GameClient extends JFrame {
                     case KeyEvent.VK_S: sPressed = true; break;
                     case KeyEvent.VK_A: aPressed = true; break;
                     case KeyEvent.VK_D: dPressed = true; break;
+                    case KeyEvent.VK_ESCAPE: System.exit(0); break;
                 }
             }
             

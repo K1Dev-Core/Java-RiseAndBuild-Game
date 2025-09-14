@@ -22,6 +22,9 @@ public class GamePanel extends JPanel {
     private AudioClip footstepSound;
     private long lastAttackTime = 0;
     private boolean isPlayingFootstep = false;
+    private int cameraX = 0;
+    private int cameraY = 0;
+    private float zoom = 1.0f;
     
     public GamePanel() {
         setFocusable(true);
@@ -157,6 +160,13 @@ public class GamePanel extends JPanel {
         }
         
         drawCooldownBar(g);
+        drawInstructions(g);
+    }
+    
+    private void drawInstructions(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        g.drawString("WASD - Move | Mouse Click - Attack | ESC - Exit", 20, 30);
     }
     
     private void updateAnimation() {
