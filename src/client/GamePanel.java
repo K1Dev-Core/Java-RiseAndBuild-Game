@@ -74,11 +74,14 @@ public class GamePanel extends JPanel {
     }
     
     private void createPortals() {
-        Portal portalA = new Portal("PortalA", 1000, 1000, 3000, 3000, "PortalB");
-        Portal portalB = new Portal("PortalB", 3000, 3000, 1000, 1000, "PortalA");
-        
-        portals.put("PortalA", portalA);
-        portals.put("PortalB", portalB);
+        for (int i = 0; i < GameConfig.PORTAL_POSITIONS.length; i++) {
+            int[] pos = GameConfig.PORTAL_POSITIONS[i];
+            String portalId = "Portal" + (char)('A' + i);
+            String targetId = "Portal" + (char)('A' + (i == 0 ? 1 : 0));
+            
+            Portal portal = new Portal(portalId, pos[0], pos[1], pos[2], pos[3], targetId);
+            portals.put(portalId, portal);
+        }
     }
     
     private void loadSounds() {

@@ -7,6 +7,7 @@ public class Portal {
     public String targetPortalId;
     public int animationFrame = 0;
     public long lastFrameTime = 0;
+    public long lastTeleportTime = 0;
     
     public Portal(String id, int x, int y, int targetX, int targetY, String targetPortalId) {
         this.id = id;
@@ -27,7 +28,7 @@ public class Portal {
     
     public boolean isPlayerNear(Player player) {
         int distance = (int) Math.sqrt(Math.pow(player.x - x, 2) + Math.pow(player.y - y, 2));
-        return distance < 50;
+        return distance < GameConfig.PORTAL_TELEPORT_DISTANCE;
     }
     
     public void teleportPlayer(Player player) {
