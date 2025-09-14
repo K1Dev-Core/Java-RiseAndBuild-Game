@@ -83,22 +83,21 @@ public class GamePanel extends JPanel {
     private void updateAnimation() {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastFrameTime > (1000 / GameConfig.ANIMATION_SPEED)) {
-            boolean isAttacking = false;
             synchronized(players) {
+                boolean hasAttackingPlayer = false;
                 for (Player p : players.values()) {
                     if (p.state.equals("attack2")) {
-                        isAttacking = true;
+                        hasAttackingPlayer = true;
+                        attackAnimationFrame = (attackAnimationFrame + 1) % GameConfig.ANIMATION_FRAMES;
+                        animationFrame = attackAnimationFrame;
                         break;
                     }
                 }
-            }
-            
-            if (isAttacking) {
-                attackAnimationFrame = (attackAnimationFrame + 1) % GameConfig.ANIMATION_FRAMES;
-                animationFrame = attackAnimationFrame;
-            } else {
-                animationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
-                attackAnimationFrame = 0;
+                
+                if (!hasAttackingPlayer) {
+                    animationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
+                    attackAnimationFrame = 0;
+                }
             }
             lastFrameTime = currentTime;
         }
@@ -114,7 +113,6 @@ public class GamePanel extends JPanel {
     }
     
     private void drawPlayer(Graphics g, Player p) {
-        p.updateState();
         String key = p.state + "_" + p.direction;
         Image img = sprites.get(key);
         
@@ -146,7 +144,7 @@ public class GamePanel extends JPanel {
             g.drawRect(p.x, p.y, GameConfig.PLAYER_SIZE, GameConfig.PLAYER_SIZE);
             
             g.setColor(Color.WHITE);
-            g.drawString(p.id + " - " + p.state, p.x, p.y - 5);
+            g.drawString(p.id + " - " + p.state + " F:" + currentFrame, p.x, p.y - 5);
         } else {
             g.setColor(Color.BLUE);
             g.fillRect(p.x, p.y, GameConfig.PLAYER_SIZE, GameConfig.PLAYER_SIZE);

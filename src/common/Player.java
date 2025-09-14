@@ -15,22 +15,26 @@ public class Player {
     }
 
     public void move(String dir) {
-        this.state = "run";
-        this.direction = dir;
-        
-        switch (dir) {
-            case "up":    y -= GameConfig.MOVE_SPEED; break;
-            case "down":  y += GameConfig.MOVE_SPEED; break;
-            case "left":  x -= GameConfig.MOVE_SPEED; break;
-            case "right": x += GameConfig.MOVE_SPEED; break;
+        if (!state.equals("attack2")) {
+            this.state = "run";
+            this.direction = dir;
+            
+            switch (dir) {
+                case "up":    y -= GameConfig.MOVE_SPEED; break;
+                case "down":  y += GameConfig.MOVE_SPEED; break;
+                case "left":  x -= GameConfig.MOVE_SPEED; break;
+                case "right": x += GameConfig.MOVE_SPEED; break;
+            }
+            
+            x = Math.max(0, Math.min(x, GameConfig.WIDTH - GameConfig.PLAYER_SIZE));
+            y = Math.max(0, Math.min(y, GameConfig.HEIGHT - GameConfig.PLAYER_SIZE));
         }
-        
-        x = Math.max(0, Math.min(x, GameConfig.WIDTH - GameConfig.PLAYER_SIZE));
-        y = Math.max(0, Math.min(y, GameConfig.HEIGHT - GameConfig.PLAYER_SIZE));
     }
     
     public void stop() {
-        this.state = "idle";
+        if (!state.equals("attack2")) {
+            this.state = "idle";
+        }
     }
     
     public void attack() {

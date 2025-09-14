@@ -60,12 +60,16 @@ public class ClientHandler implements Runnable {
     }
 
     private void broadcast() {
+        for (Player p : players.values()) {
+            p.updateState();
+        }
+        
         StringBuilder sb = new StringBuilder();
         for (Player p : players.values()) {
             sb.append(p.toString()).append(";");
         }
         String msg = "PLAYERS:" + sb.toString();
-        System.out.println("Broadcasting: " + msg);
+        
         for (ClientHandler c : clients) {
             c.send(msg);
         }
