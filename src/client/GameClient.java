@@ -6,9 +6,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import javax.swing.*;
-import javax.swing.Timer;
-
-
 
 public class GameClient extends JFrame {
     private Socket socket;
@@ -17,11 +14,18 @@ public class GameClient extends JFrame {
     private String playerId;
     private Map<String, Player> players = new HashMap<>();
     private GamePanel panel;
+    private boolean wPressed = false;
+    private boolean sPressed = false;
+    private boolean aPressed = false;
+    private boolean dPressed = false;
+    private boolean spacePressed = false;
+    private javax.swing.Timer gameTimer;
 
     public GameClient() throws IOException {
         setTitle("2D Online Game");
         setSize(GameConfig.WIDTH, GameConfig.HEIGHT);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
 
         socket = new Socket("localhost", GameConfig.PORT);
         out = new PrintWriter(socket.getOutputStream(), true);
@@ -30,45 +34,90 @@ public class GameClient extends JFrame {
         panel = new GamePanel(players, playerId);
         add(panel);
         panel.setFocusable(true);
-        panel.requestFocus();
 
         new Thread(this::listen).start();
+        setupControls();
+        setupGameTimer();
 
-        addKeyListener(new KeyAdapter() {
+        setVisible(true);
+        panel.requestFocus();
+    }
+
+    private void setupControls() {
+        KeyListener keyListener = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 switch (e.getKeyCode()) {
-                    case KeyEvent.VK_W: out.println("MOVE:up"); break;
-                    case KeyEvent.VK_S: out.println("MOVE:down"); break;
-                    case KeyEvent.VK_A: out.println("MOVE:left"); break;
-                    case KeyEvent.VK_D: out.println("MOVE:right"); break;
-                    case KeyEvent.VK_SPACE: out.println("ATTACK"); break;
+                    case KeyEvent.VK_W: wPressed = true; break;
+                    case KeyEvent.VK_S: sPressed = true; break;
+                    case KeyEvent.VK_A: aPressed = true; break;
+                    case KeyEvent.VK_D: dPressed = true; break;
+                    case KeyEvent.VK_SPACE: 
+                        if (!spacePressed) {
+                            spacePressed = true;
+                        }
+                        break;
                 }
             }
             
             @Override
             public void keyReleased(KeyEvent e) {
                 switch (e.getKeyCode()) {
-                    case KeyEvent.VK_W:
-                    case KeyEvent.VK_S:
-                    case KeyEvent.VK_A:
-                    case KeyEvent.VK_D:
-                        out.println("STOP");
-                        break;
+                    case KeyEvent.VK_W: wPressed = false; break;
+                    case KeyEvent.VK_S: sPressed = false; break;
+                    case KeyEvent.VK_A: aPressed = false; break;
+                    case KeyEvent.VK_D: dPressed = false; break;
+                    case KeyEvent.VK_SPACE: spacePressed = false; break;
                 }
             }
-        });
-        
-        addMouseListener(new MouseAdapter() {
+        };
+
+        MouseListener mouseListener = new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 out.println("ATTACK");
+                panel.showAttackFeedback();
+                panel.requestFocus();
             }
+        };
+
+        panel.addKeyListener(keyListener);
+        addKeyListener(keyListener);
+        panel.addMouseListener(mouseListener);
+    }
+
+    private void setupGameTimer() {
+        gameTimer = new javax.swing.Timer(16, e -> {
+            handleMovement();
+            panel.repaint();
         });
+        gameTimer.start();
+    }
 
-        setVisible(true);
+    private void handleMovement() {
+        String direction = "";
+        
+        if (wPressed) {
+            direction = "up";
+        } else if (sPressed) {
+            direction = "down";
+        } else if (aPressed) {
+            direction = "left";
+        } else if (dPressed) {
+            direction = "right";
+        }
 
-        new Timer(30, e -> panel.repaint()).start();
+        if (!direction.isEmpty()) {
+            out.println("MOVE:" + direction);
+        } else {
+            out.println("STOP");
+        }
+        
+        if (spacePressed) {
+            out.println("ATTACK");
+            panel.showAttackFeedback();
+            spacePressed = false;
+        }
     }
 
     private void listen() {
@@ -78,10 +127,9 @@ public class GameClient extends JFrame {
                 if (line.startsWith("ID:")) {
                     playerId = line.substring(3);
                     panel.setPlayerId(playerId);
-                    panel.repaint();
+                    panel.requestFocus();
                 } else if (line.startsWith("PLAYERS:")) {
                     updatePlayers(line.substring(8));
-                    panel.repaint();
                 }
             }
         } catch (IOException e) {
@@ -90,12 +138,14 @@ public class GameClient extends JFrame {
     }
 
     private void updatePlayers(String data) {
-        players.clear();
-        String[] all = data.split(";");
-        for (String p : all) {
-            if (!p.isEmpty()) {
-                Player pl = Player.fromString(p);
-                players.put(pl.id, pl);
+        synchronized(players) {
+            players.clear();
+            String[] all = data.split(";");
+            for (String p : all) {
+                if (!p.isEmpty()) {
+                    Player pl = Player.fromString(p);
+                    players.put(pl.id, pl);
+                }
             }
         }
     }

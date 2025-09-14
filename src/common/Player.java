@@ -6,6 +6,7 @@ public class Player {
     public String direction = "down";
     public String state = "idle";
     public long lastAttackTime = 0;
+    public boolean canAttack = true;
 
     public Player(String id, int x, int y) {
         this.id = id;
@@ -16,6 +17,7 @@ public class Player {
     public void move(String dir) {
         this.state = "run";
         this.direction = dir;
+        
         switch (dir) {
             case "up":    y -= GameConfig.MOVE_SPEED; break;
             case "down":  y += GameConfig.MOVE_SPEED; break;
@@ -27,15 +29,29 @@ public class Player {
         y = Math.max(0, Math.min(y, GameConfig.HEIGHT - GameConfig.PLAYER_SIZE));
     }
     
-    public void attack() {
-        this.state = "attack1";
-        this.lastAttackTime = System.currentTimeMillis();
+    public void stop() {
+        this.state = "idle";
     }
     
+    public void attack() {
+        if (canAttack) {
+            long currentTime = System.currentTimeMillis();
+            this.state = "attack2";
+            this.lastAttackTime = currentTime;
+            this.canAttack = false;
+        }
+    }
+    
+    
     public void updateState() {
-        if (state.equals("attack1") && 
-            System.currentTimeMillis() - lastAttackTime > GameConfig.ATTACK_DURATION) {
-            this.state = "idle";
+        if (state.equals("attack2")) {
+            long currentTime = System.currentTimeMillis();
+            long elapsed = currentTime - lastAttackTime;
+            
+            if (elapsed > GameConfig.ATTACK_DURATION) {
+                this.state = "idle";
+                this.canAttack = true;
+            }
         }
     }
 

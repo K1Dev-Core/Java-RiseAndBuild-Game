@@ -26,7 +26,7 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             playerId = "P" + socket.getPort();
-            Player player = new Player(playerId, 100, 100);
+            Player player = new Player(playerId, 200, 200);
             players.put(playerId, player);
 
             out.println("ID:" + playerId);
@@ -39,7 +39,7 @@ public class ClientHandler implements Runnable {
                     player.move(dir);
                     broadcast();
                 } else if (input.equals("STOP")) {
-                    player.state = "idle";
+                    player.stop();
                     broadcast();
                 } else if (input.equals("ATTACK")) {
                     player.attack();
@@ -65,6 +65,7 @@ public class ClientHandler implements Runnable {
             sb.append(p.toString()).append(";");
         }
         String msg = "PLAYERS:" + sb.toString();
+        System.out.println("Broadcasting: " + msg);
         for (ClientHandler c : clients) {
             c.send(msg);
         }
