@@ -19,6 +19,7 @@ public class GamePanel extends JPanel {
     private final float zoom = 5.0f;
     private boolean gridInitialized = false;
     private SoundManager soundManager;
+    private boolean gameStarted = false;
     
     public GamePanel() {
         setFocusable(true);
@@ -35,6 +36,7 @@ public class GamePanel extends JPanel {
         this.players = players;
         this.playerId = playerId;
         this.soundManager = new SoundManager();
+        this.gameStarted = true;
         loadSprites();
         loadSounds();
     }
@@ -61,7 +63,6 @@ public class GamePanel extends JPanel {
     
     
     private void loadSounds() {
-        // ลบการใช้เสียงออก
     }
 
     public void showAttackFeedback() {
@@ -71,7 +72,6 @@ public class GamePanel extends JPanel {
             attackFeedbackTime = currentTime;
             lastAttackTime = currentTime;
             
-            // เล่นเสียง slash เมื่อโจมตี
             if (soundManager != null) {
                 soundManager.playSlashSound();
             }
@@ -171,21 +171,17 @@ public class GamePanel extends JPanel {
         Player mainPlayer = players.get(playerId);
         if (mainPlayer == null) return;
         
-        // คำนวณตำแหน่งของแผนที่บนหน้าจอ
         int mapLeft = getWidth() / 2 - (int)(mainPlayer.x * zoom);
         int mapTop = getHeight() / 2 - (int)(mainPlayer.y * zoom);
         
-        // ขนาดช่องตาราง 64x64 พิกเซล
         int gridSize = 64;
         
-        // คำนวณขอบเขตของตารางที่จะวาด
         int startX = (mapLeft / gridSize) * gridSize;
         int startY = (mapTop / gridSize) * gridSize;
         int endX = startX + getWidth() + gridSize;
         int endY = startY + getHeight() + gridSize;
         
-        // วาดเส้นตารางแนวตั้ง
-        g.setColor(new Color(60, 60, 60, 100)); // สีเทาอ่อนโปร่งใส
+        g.setColor(new Color(60, 60, 60, 100));
         for (int x = startX; x <= endX; x += gridSize) {
             int screenX = x - mapLeft;
             if (screenX >= 0 && screenX <= getWidth()) {
@@ -193,7 +189,6 @@ public class GamePanel extends JPanel {
             }
         }
         
-        // วาดเส้นตารางแนวนอน
         for (int y = startY; y <= endY; y += gridSize) {
             int screenY = y - mapTop;
             if (screenY >= 0 && screenY <= getHeight()) {
@@ -201,12 +196,10 @@ public class GamePanel extends JPanel {
             }
         }
         
-        // วาดขอบเขตแผนที่
-        g.setColor(new Color(255, 100, 100, 150)); // สีแดงโปร่งใส
+        g.setColor(new Color(255, 100, 100, 150));
         int mapRight = mapLeft + (int)(GameConfig.MAP_WIDTH * zoom);
         int mapBottom = mapTop + (int)(GameConfig.MAP_HEIGHT * zoom);
         
-        // วาดเส้นขอบแผนที่
         if (mapLeft < getWidth() && mapRight > 0) {
             g.drawLine(mapLeft, 0, mapLeft, getHeight());
             g.drawLine(mapRight, 0, mapRight, getHeight());
@@ -217,7 +210,6 @@ public class GamePanel extends JPanel {
             g.drawLine(0, mapBottom, getWidth(), mapBottom);
         }
         
-        // วาดข้อมูลตาราง
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 12));
         String gridInfo = "Grid: 64x64 | Map: " + GameConfig.MAP_WIDTH + "x" + GameConfig.MAP_HEIGHT;
@@ -227,7 +219,6 @@ public class GamePanel extends JPanel {
     
     
     public void checkPlayerMovement() {
-        // ลบการตรวจสอบ Portal ออก
     }
     
     
@@ -250,17 +241,14 @@ public class GamePanel extends JPanel {
                     }
                 }
                 
-                // จัดการเสียง footsteps สำหรับผู้เล่นหลัก
                 Player mainPlayer = players.get(playerId);
-                if (mainPlayer != null && soundManager != null) {
+                if (mainPlayer != null && soundManager != null && gameStarted) {
                     if (mainPlayer.state.equals("run")) {
                         if (!soundManager.isFootstepPlaying()) {
-                            System.out.println("เริ่มเล่นเสียง footsteps - State: " + mainPlayer.state);
                             soundManager.startFootstepSound();
                         }
                     } else {
                         if (soundManager.isFootstepPlaying()) {
-                            System.out.println("หยุดเสียง footsteps - State: " + mainPlayer.state);
                             soundManager.stopFootstepSound();
                         }
                     }
