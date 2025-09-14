@@ -15,6 +15,7 @@ public class GamePanel extends JPanel {
     private boolean showAttackFeedback = false;
     private String lastPlayerState = "";
     private int attackAnimationFrame = 0;
+    private Map<String, Integer> playerAttackFrames = new HashMap<>();
     
     public GamePanel() {
         setFocusable(true);
@@ -84,20 +85,19 @@ public class GamePanel extends JPanel {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastFrameTime > (1000 / GameConfig.ANIMATION_SPEED)) {
             synchronized(players) {
-                boolean hasAttackingPlayer = false;
                 for (Player p : players.values()) {
                     if (p.state.equals("attack2")) {
-                        hasAttackingPlayer = true;
-                        attackAnimationFrame = (attackAnimationFrame + 1) % GameConfig.ANIMATION_FRAMES;
-                        animationFrame = attackAnimationFrame;
-                        break;
+                        int currentFrame = playerAttackFrames.getOrDefault(p.id, 0);
+                        if (currentFrame < GameConfig.ANIMATION_FRAMES - 1) {
+                            currentFrame++;
+                            playerAttackFrames.put(p.id, currentFrame);
+                        }
+                    } else {
+                        playerAttackFrames.remove(p.id);
                     }
                 }
                 
-                if (!hasAttackingPlayer) {
-                    animationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
-                    attackAnimationFrame = 0;
-                }
+                animationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
             }
             lastFrameTime = currentTime;
         }
@@ -116,18 +116,17 @@ public class GamePanel extends JPanel {
         String key = p.state + "_" + p.direction;
         Image img = sprites.get(key);
         
-        if (!p.state.equals(lastPlayerState)) {
-            if (p.state.equals("attack2")) {
-                attackAnimationFrame = 0;
-            }
-            lastPlayerState = p.state;
-        }
-        
         if (img != null) {
             int frameWidth = img.getWidth(null) / GameConfig.ANIMATION_FRAMES;
             int frameHeight = img.getHeight(null);
             
-            int currentFrame = p.state.equals("attack2") ? attackAnimationFrame : animationFrame;
+            int currentFrame;
+            if (p.state.equals("attack2")) {
+                currentFrame = playerAttackFrames.getOrDefault(p.id, 0);
+            } else {
+                currentFrame = animationFrame;
+            }
+            
             int srcX = currentFrame * frameWidth;
             int srcY = 0;
             

@@ -10,8 +10,8 @@ public class GameConfig {
     public static final int CANVAS_WIDTH = 96;
     public static final int CANVAS_HEIGHT = 80;
     public static final int ANIMATION_FRAMES = 8;
-    public static final int ANIMATION_SPEED = 8;
+    public static final int ANIMATION_SPEED = 12;
     public static final int MOVE_SPEED = 4;
-    public static final int ATTACK_DURATION = 800;
+    public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 500;
 }

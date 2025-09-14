@@ -52,7 +52,7 @@ public class Player {
             long currentTime = System.currentTimeMillis();
             long elapsed = currentTime - lastAttackTime;
             
-            if (elapsed > GameConfig.ATTACK_DURATION) {
+            if (elapsed >= GameConfig.ATTACK_DURATION) {
                 this.state = "idle";
                 this.canAttack = true;
             }
