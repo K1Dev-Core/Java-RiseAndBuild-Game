@@ -31,9 +31,29 @@ public class Portal {
         return distance < GameConfig.PORTAL_TELEPORT_DISTANCE;
     }
     
+    public boolean isPlayerInside(Player player) {
+        int playerCenterX = player.x + GameConfig.PLAYER_SIZE / 2;
+        int playerCenterY = player.y + GameConfig.PLAYER_SIZE / 2;
+        int portalCenterX = x + GameConfig.PORTAL_SIZE / 2;
+        int portalCenterY = y + GameConfig.PORTAL_SIZE / 2;
+        
+        int distance = (int) Math.sqrt(Math.pow(playerCenterX - portalCenterX, 2) + Math.pow(playerCenterY - portalCenterY, 2));
+        return distance < GameConfig.PORTAL_SIZE / 3;
+    }
+    
+    public boolean canTeleport() {
+        long currentTime = System.currentTimeMillis();
+        return currentTime - lastTeleportTime > 2000;
+    }
+    
     public void teleportPlayer(Player player) {
+        long currentTime = System.currentTimeMillis();
+        lastTeleportTime = currentTime;
+        
         player.x = targetX;
         player.y = targetY;
+        
+        System.out.println("Teleported player to: " + player.x + ", " + player.y);
     }
     
     @Override

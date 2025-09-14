@@ -25,6 +25,10 @@ public class GamePanel extends JPanel {
     private long lastAttackTime = 0;
     private boolean isPlayingFootstep = false;
     private float zoom = 5.0f;
+    private long teleportEffectTime = 0;
+    private boolean showTeleportEffect = false;
+    private boolean isInsidePortal = false;
+    private Portal currentPortal = null;
     
     public GamePanel() {
         setFocusable(true);
@@ -189,13 +193,14 @@ public class GamePanel extends JPanel {
         drawPlayerCoordinates(g);
         drawMapBoundaries(g);
         drawPortals(g);
+        drawTeleportEffect(g);
         checkPortalTeleport();
     }
     
     private void drawInstructions(Graphics g) {
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString("WASD - Move | Mouse Click - Attack | ESC - Exit", 20, 30);
+        g.drawString("WASD - Move | Mouse Click - Attack | SPACE - Teleport | ESC - Exit", 20, 30);
     }
     
     private void drawPlayerCoordinates(Graphics g) {
@@ -296,6 +301,28 @@ public class GamePanel extends JPanel {
                 
                 g.setColor(Color.WHITE);
                 g.drawString(portal.id, screenX, screenY - 10);
+                
+                int distance = (int) Math.sqrt(Math.pow(portal.x - mainPlayer.x, 2) + Math.pow(portal.y - mainPlayer.y, 2));
+                if (distance < GameConfig.PORTAL_TELEPORT_DISTANCE) {
+                    g.setColor(Color.YELLOW);
+                    g.drawOval(screenX - 10, screenY - 10, GameConfig.PORTAL_SIZE + 20, GameConfig.PORTAL_SIZE + 20);
+                    
+                    if (portal.isPlayerInside(mainPlayer)) {
+                        g.setColor(Color.CYAN);
+                        g.drawOval(screenX - 5, screenY - 5, GameConfig.PORTAL_SIZE + 10, GameConfig.PORTAL_SIZE + 10);
+                        
+                        if (portal.canTeleport()) {
+                            g.setColor(Color.GREEN);
+                            g.drawString("PRESS SPACE TO TELEPORT", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
+                        } else {
+                            g.setColor(Color.RED);
+                            g.drawString("COOLDOWN", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
+                        }
+                    } else {
+                        g.setColor(Color.ORANGE);
+                        g.drawString("ENTER PORTAL", screenX, screenY + GameConfig.PORTAL_SIZE + 20);
+                    }
+                }
             }
         }
     }
@@ -303,11 +330,39 @@ public class GamePanel extends JPanel {
     private void checkPortalTeleport() {
         Player mainPlayer = players.get(playerId);
         if (mainPlayer != null) {
+            isInsidePortal = false;
+            currentPortal = null;
+            
             for (Portal portal : portals.values()) {
-                if (portal.isPlayerNear(mainPlayer)) {
-                    portal.teleportPlayer(mainPlayer);
+                if (portal.isPlayerInside(mainPlayer)) {
+                    isInsidePortal = true;
+                    currentPortal = portal;
                     break;
                 }
+            }
+        }
+    }
+    
+    public void teleportPlayer() {
+        if (isInsidePortal && currentPortal != null && currentPortal.canTeleport()) {
+            currentPortal.teleportPlayer(players.get(playerId));
+            showTeleportEffect = true;
+            teleportEffectTime = System.currentTimeMillis();
+        }
+    }
+    
+    private void drawTeleportEffect(Graphics g) {
+        if (showTeleportEffect) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - teleportEffectTime > 1000) {
+                showTeleportEffect = false;
+            } else {
+                g.setColor(new Color(0, 0, 0, 150));
+                g.fillRect(0, 0, getWidth(), getHeight());
+                
+                g.setColor(Color.WHITE);
+                g.setFont(new Font("Arial", Font.BOLD, 48));
+                g.drawString("TELEPORTING...", getWidth() / 2 - 150, getHeight() / 2);
             }
         }
     }

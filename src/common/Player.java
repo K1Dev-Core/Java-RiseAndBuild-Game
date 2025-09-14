@@ -19,23 +19,40 @@ public class Player {
             this.state = "run";
             this.direction = dir;
             
+            int newX = x;
+            int newY = y;
+            
             switch (dir) {
-                case "up":    y -= GameConfig.MOVE_SPEED; break;
-                case "down":  y += GameConfig.MOVE_SPEED; break;
-                case "left":  x -= GameConfig.MOVE_SPEED; break;
-                case "right": x += GameConfig.MOVE_SPEED; break;
+                case "up":    newY -= GameConfig.MOVE_SPEED; break;
+                case "down":  newY += GameConfig.MOVE_SPEED; break;
+                case "left":  newX -= GameConfig.MOVE_SPEED; break;
+                case "right": newX += GameConfig.MOVE_SPEED; break;
             }
             
             int maxX = GameConfig.MAP_WIDTH - GameConfig.PLAYER_SIZE;
             int maxY = GameConfig.MAP_HEIGHT - GameConfig.PLAYER_SIZE;
             
-            if (x > maxX || y > maxY) {
-                System.out.println("Boundary check: x=" + x + " maxX=" + maxX + " y=" + y + " maxY=" + maxY);
+            if (newX > maxX || newY > maxY) {
+                System.out.println("Boundary check: x=" + newX + " maxX=" + maxX + " y=" + newY + " maxY=" + maxY);
             }
             
-            x = Math.max(0, Math.min(x, maxX));
-            y = Math.max(0, Math.min(y, maxY));
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+            
+            if (!isCollidingWithPortal(newX, newY)) {
+                x = newX;
+                y = newY;
+            }
         }
+    }
+    
+    private boolean isCollidingWithPortal(int newX, int newY) {
+        return false;
+    }
+    
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
     }
     
     public void stop() {

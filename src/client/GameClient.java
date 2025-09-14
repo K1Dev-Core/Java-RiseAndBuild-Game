@@ -52,6 +52,7 @@ public class GameClient extends JFrame {
                     case KeyEvent.VK_S: sPressed = true; break;
                     case KeyEvent.VK_A: aPressed = true; break;
                     case KeyEvent.VK_D: dPressed = true; break;
+                    case KeyEvent.VK_SPACE: panel.teleportPlayer(); break;
                     case KeyEvent.VK_ESCAPE: System.exit(0); break;
                 }
             }
