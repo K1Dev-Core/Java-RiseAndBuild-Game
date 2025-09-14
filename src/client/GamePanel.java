@@ -121,7 +121,7 @@ public class GamePanel extends JPanel {
                     if (p.id.equals(playerId)) {
                         int barWidth = (int)(40 * zoom);
                         int barHeight = (int)(4 * zoom);
-                        int scaledSize = (int)(64 * zoom); // ใช้ขนาดเดียวกับตาราง
+                        int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom); // ใช้ขนาดเดียวกับตาราง
                         int x = getWidth() / 2 - barWidth / 2;
                         int y = getHeight() / 2 + scaledSize / 2 + 20;
                         
@@ -330,7 +330,7 @@ public class GamePanel extends JPanel {
             int srcX = currentFrame * frameWidth;
             int srcY = 0;
             
-            int scaledSize = (int)(64 * zoom); // ใช้ขนาดเดียวกับตาราง
+            int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom); // ใช้ขนาดเดียวกับตาราง
             int screenX, screenY;
             
             if (p.id.equals(playerId)) {
@@ -383,7 +383,7 @@ public class GamePanel extends JPanel {
                 g.drawString(status, getWidth() - textWidth - 20, getHeight() - 20);
             }
         } else {
-            int scaledSize = (int)(64 * zoom); // ใช้ขนาดเดียวกับตาราง
+            int scaledSize = (int)(GameConfig.PLAYER_SIZE * zoom); // ใช้ขนาดเดียวกับตาราง
             int screenX, screenY;
             
             if (p.id.equals(playerId)) {
