@@ -16,7 +16,7 @@ public class GamePanel extends JPanel {
     private boolean showAttackFeedback = false;
     private final Map<String, Integer> playerAttackFrames = new HashMap<>();
     private long lastAttackTime = 0;
-    private final float zoom = 5.0f;
+    private final float zoom = 7.0f;
     private SoundManager soundManager;
     private boolean gameStarted = false;
     private boolean needsRepaint = false;
@@ -24,6 +24,12 @@ public class GamePanel extends JPanel {
     private long lastFpsTime = 0;
     private int frameCount = 0;
     private Image mapImage;
+    
+    // ระบบแจ้งเตือน
+    private String notificationText = "";
+    private long notificationTime = 0;
+    private static final long NOTIFICATION_DURATION = 3000; // 3 วินาที
+    private Set<String> previousPlayers = new HashSet<>();
     
     public GamePanel() {
         setFocusable(true);
@@ -54,6 +60,7 @@ public class GamePanel extends JPanel {
         updateAnimation();
         updateAttackFeedback();
         updateFPS();
+        checkPlayerChanges();
     }
     
     public void requestRepaint() {
@@ -175,6 +182,7 @@ public class GamePanel extends JPanel {
             drawCooldownBar(g2d);
             drawPlayerCoordinates(g2d);
             drawFPS(g2d);
+            drawNotification(g2d);
         } finally {
             g2d.dispose();
         }
@@ -205,6 +213,38 @@ public class GamePanel extends JPanel {
         g2d.setFont(new Font("Arial", Font.BOLD, 12));
         String fpsText = "FPS: " + fps;
         g2d.drawString(fpsText, 20, getHeight() - 20);
+    }
+    
+    private void drawNotification(Graphics2D g2d) {
+        long currentTime = System.currentTimeMillis();
+        
+        // ตรวจสอบว่ามีข้อความแจ้งเตือนและยังไม่หมดเวลา
+        if (!notificationText.isEmpty() && (currentTime - notificationTime) < NOTIFICATION_DURATION) {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+            
+            // ตั้งค่าสีและฟอนต์
+            g2d.setColor(new Color(255, 255, 255, 255)); // สีขาว
+            g2d.setFont(new Font("Arial", Font.BOLD, 16));
+            
+            // คำนวณตำแหน่งข้อความ (มุมขวาบน)
+            FontMetrics fm = g2d.getFontMetrics();
+            int textWidth = fm.stringWidth(notificationText);
+            int textHeight = fm.getHeight();
+            int x = getWidth() - textWidth - 20; // 20 pixels จากขอบขวา
+            int y = 40; // 40 pixels จากขอบบน
+            
+            // วาดพื้นหลังข้อความ (สีดำโปร่งใส)
+            g2d.setColor(new Color(0, 0, 0, 150));
+            g2d.fillRect(x - 10, y - textHeight + 5, textWidth + 20, textHeight + 10);
+            
+            // วาดข้อความ
+            g2d.setColor(new Color(255, 255, 255, 255));
+            g2d.drawString(notificationText, x, y);
+        } else if (!notificationText.isEmpty() && (currentTime - notificationTime) >= NOTIFICATION_DURATION) {
+            // ล้างข้อความเมื่อหมดเวลา
+            notificationText = "";
+        }
     }
     
     private void drawBackground(Graphics2D g2d) {
@@ -310,6 +350,33 @@ public class GamePanel extends JPanel {
             frameCount = 0;
             lastFpsTime = currentTime;
         }
+    }
+    
+    private void checkPlayerChanges() {
+        synchronized(players) {
+            Set<String> currentPlayers = new HashSet<>(players.keySet());
+            
+            // ตรวจสอบผู้เล่นที่เข้าใหม่
+            for (String playerId : currentPlayers) {
+                if (!previousPlayers.contains(playerId) && !playerId.equals(this.playerId)) {
+                    showNotification("Player  " + playerId + " Join");
+                }
+            }
+            
+            // ตรวจสอบผู้เล่นที่ออกไป
+            for (String playerId : previousPlayers) {
+                if (!currentPlayers.contains(playerId) && !playerId.equals(this.playerId)) {
+                    showNotification("Player " + playerId + " Exit");
+                }
+            }
+            
+            previousPlayers = new HashSet<>(currentPlayers);
+        }
+    }
+    
+    private void showNotification(String message) {
+        notificationText = message;
+        notificationTime = System.currentTimeMillis();
     }
     
     private void drawPlayer(Graphics g, Player p) {
