@@ -4,6 +4,8 @@ import common.*;
 import java.awt.*;
 import java.util.*;
 import javax.swing.*;
+import java.applet.AudioClip;
+import java.io.File;
 
 public class GamePanel extends JPanel {
     private Map<String, Player> players;
@@ -16,6 +18,8 @@ public class GamePanel extends JPanel {
     private String lastPlayerState = "";
     private int attackAnimationFrame = 0;
     private Map<String, Integer> playerAttackFrames = new HashMap<>();
+    private AudioClip slashSound;
+    private long lastAttackTime = 0;
     
     public GamePanel() {
         setFocusable(true);
@@ -31,6 +35,7 @@ public class GamePanel extends JPanel {
         this.players = players;
         this.playerId = playerId;
         loadSprites();
+        loadSounds();
     }
 
     private void loadSprites() {
@@ -52,10 +57,60 @@ public class GamePanel extends JPanel {
         }
     }
     
+    private void loadSounds() {
+        try {
+            File soundFile = new File("./assets/sounds/slash1.wav");
+            if (soundFile.exists()) {
+                slashSound = java.applet.Applet.newAudioClip(soundFile.toURI().toURL());
+            }
+        } catch (Exception e) {
+            System.out.println("Could not load slash sound: " + e.getMessage());
+        }
+    }
 
     public void showAttackFeedback() {
-        showAttackFeedback = true;
-        attackFeedbackTime = System.currentTimeMillis();
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastAttackTime > GameConfig.ATTACK_DURATION + GameConfig.ATTACK_COOLDOWN) {
+            showAttackFeedback = true;
+            attackFeedbackTime = currentTime;
+            lastAttackTime = currentTime;
+            playSlashSound();
+        }
+    }
+    
+    private void playSlashSound() {
+        if (slashSound != null) {
+            slashSound.play();
+        }
+    }
+    
+    private void drawCooldownBar(Graphics g) {
+        long currentTime = System.currentTimeMillis();
+        long elapsed = currentTime - lastAttackTime;
+        long totalCooldown = GameConfig.ATTACK_DURATION + GameConfig.ATTACK_COOLDOWN;
+        
+        if (elapsed < totalCooldown) {
+            synchronized(players) {
+                for (Player p : players.values()) {
+                    if (p.id.equals(playerId)) {
+                        int barWidth = 40;
+                        int barHeight = 4;
+                        int x = p.x + (GameConfig.PLAYER_SIZE - barWidth) / 2;
+                        int y = p.y - 10;
+                        
+                        g.setColor(Color.GRAY);
+                        g.fillRect(x, y, barWidth, barHeight);
+                        
+                        float progress = (float) elapsed / totalCooldown;
+                        int fillWidth = (int) (barWidth * progress);
+                        
+                        g.setColor(Color.RED);
+                        g.fillRect(x, y, fillWidth, barHeight);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -79,6 +134,8 @@ public class GamePanel extends JPanel {
             g.setFont(new Font("Arial", Font.BOLD, 24));
             g.drawString("ATTACK!", 50, 50);
         }
+        
+        drawCooldownBar(g);
     }
     
     private void updateAnimation() {
@@ -143,7 +200,13 @@ public class GamePanel extends JPanel {
             g.drawRect(p.x, p.y, GameConfig.PLAYER_SIZE, GameConfig.PLAYER_SIZE);
             
             g.setColor(Color.WHITE);
-            g.drawString(p.id + " - " + p.state + " F:" + currentFrame, p.x, p.y - 5);
+            String status = p.id + " - " + p.state + " F:" + currentFrame;
+            if (p.state.equals("attack2")) {
+                status += " (ATTACKING)";
+            } else if (!p.canAttack) {
+                status += " (COOLDOWN)";
+            }
+            g.drawString(status, p.x, p.y - 5);
         } else {
             g.setColor(Color.BLUE);
             g.fillRect(p.x, p.y, GameConfig.PLAYER_SIZE, GameConfig.PLAYER_SIZE);

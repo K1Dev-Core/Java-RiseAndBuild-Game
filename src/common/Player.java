@@ -38,7 +38,7 @@ public class Player {
     }
     
     public void attack() {
-        if (canAttack) {
+        if (canAttack && !state.equals("attack2")) {
             long currentTime = System.currentTimeMillis();
             this.state = "attack2";
             this.lastAttackTime = currentTime;
@@ -54,6 +54,12 @@ public class Player {
             
             if (elapsed >= GameConfig.ATTACK_DURATION) {
                 this.state = "idle";
+            }
+        } else if (!canAttack) {
+            long currentTime = System.currentTimeMillis();
+            long elapsed = currentTime - lastAttackTime;
+            
+            if (elapsed >= GameConfig.ATTACK_DURATION + GameConfig.ATTACK_COOLDOWN) {
                 this.canAttack = true;
             }
         }

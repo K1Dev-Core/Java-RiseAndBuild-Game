@@ -18,7 +18,6 @@ public class GameClient extends JFrame {
     private boolean sPressed = false;
     private boolean aPressed = false;
     private boolean dPressed = false;
-    private boolean spacePressed = false;
     private javax.swing.Timer gameTimer;
 
     public GameClient() throws IOException {
@@ -52,11 +51,6 @@ public class GameClient extends JFrame {
                     case KeyEvent.VK_S: sPressed = true; break;
                     case KeyEvent.VK_A: aPressed = true; break;
                     case KeyEvent.VK_D: dPressed = true; break;
-                    case KeyEvent.VK_SPACE: 
-                        if (!spacePressed) {
-                            spacePressed = true;
-                        }
-                        break;
                 }
             }
             
@@ -67,7 +61,6 @@ public class GameClient extends JFrame {
                     case KeyEvent.VK_S: sPressed = false; break;
                     case KeyEvent.VK_A: aPressed = false; break;
                     case KeyEvent.VK_D: dPressed = false; break;
-                    case KeyEvent.VK_SPACE: spacePressed = false; break;
                 }
             }
         };
@@ -113,11 +106,6 @@ public class GameClient extends JFrame {
             out.println("STOP");
         }
         
-        if (spacePressed) {
-            out.println("ATTACK");
-            panel.showAttackFeedback();
-            spacePressed = false;
-        }
     }
 
     private void listen() {

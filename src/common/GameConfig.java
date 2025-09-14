@@ -13,5 +13,5 @@ public class GameConfig {
     public static final int ANIMATION_SPEED = 12;
     public static final int MOVE_SPEED = 4;
     public static final int ATTACK_DURATION = 640;
-    public static final int ATTACK_COOLDOWN = 500;
+    public static final int ATTACK_COOLDOWN = 200;
 }
