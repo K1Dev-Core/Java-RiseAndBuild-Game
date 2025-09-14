@@ -40,17 +40,22 @@ public class SoundManager {
     private void loadSound(String name, String path) {
         try {
             File soundFile = new File(path);
+            System.out.println("กำลังโหลดเสียง " + name + " จาก: " + path);
+            System.out.println("ไฟล์มีอยู่จริง: " + soundFile.exists());
+            System.out.println("ขนาดไฟล์: " + soundFile.length() + " bytes");
+            
             if (soundFile.exists()) {
                 AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
                 Clip clip = AudioSystem.getClip();
                 clip.open(audioStream);
                 soundClips.put(name, clip);
-                System.out.println("โหลดเสียง " + name + " สำเร็จ");
+                System.out.println("โหลดเสียง " + name + " สำเร็จ - Duration: " + clip.getMicrosecondLength() / 1000000.0 + " วินาที");
             } else {
                 System.out.println("ไม่พบไฟล์เสียง: " + path);
             }
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
             System.out.println("เกิดข้อผิดพลาดในการโหลดเสียง " + name + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -68,6 +73,9 @@ public class SoundManager {
             footstepClip.setFramePosition(0);
             footstepClip.start();
             isFootstepPlaying = true;
+            System.out.println("เสียง footsteps เริ่มเล่นแล้ว");
+        } else {
+            System.out.println("ไม่สามารถเล่นเสียง footsteps ได้ - Clip: " + (footstepClip != null) + " Playing: " + isFootstepPlaying);
         }
     }
     
@@ -75,6 +83,7 @@ public class SoundManager {
         if (footstepClip != null && isFootstepPlaying) {
             footstepClip.stop();
             isFootstepPlaying = false;
+            System.out.println("เสียง footsteps หยุดแล้ว");
         }
     }
     

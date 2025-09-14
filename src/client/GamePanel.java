@@ -250,6 +250,22 @@ public class GamePanel extends JPanel {
                     }
                 }
                 
+                // จัดการเสียง footsteps สำหรับผู้เล่นหลัก
+                Player mainPlayer = players.get(playerId);
+                if (mainPlayer != null && soundManager != null) {
+                    if (mainPlayer.state.equals("run")) {
+                        if (!soundManager.isFootstepPlaying()) {
+                            System.out.println("เริ่มเล่นเสียง footsteps - State: " + mainPlayer.state);
+                            soundManager.startFootstepSound();
+                        }
+                    } else {
+                        if (soundManager.isFootstepPlaying()) {
+                            System.out.println("หยุดเสียง footsteps - State: " + mainPlayer.state);
+                            soundManager.stopFootstepSound();
+                        }
+                    }
+                }
+                
                 animationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
             }
             lastFrameTime = currentTime;
@@ -268,19 +284,6 @@ public class GamePanel extends JPanel {
     private void drawPlayer(Graphics g, Player p) {
         String key = p.state + "_" + p.direction;
         Image img = sprites.get(key);
-        
-        if (p.id.equals(playerId)) {
-            // จัดการเสียง footsteps
-            if (p.state.equals("run")) {
-                if (soundManager != null && !soundManager.isFootstepPlaying()) {
-                    soundManager.startFootstepSound();
-                }
-            } else {
-                if (soundManager != null && soundManager.isFootstepPlaying()) {
-                    soundManager.stopFootstepSound();
-                }
-            }
-        }
         
         if (img != null) {
             int frameWidth = img.getWidth(null) / GameConfig.ANIMATION_FRAMES;
