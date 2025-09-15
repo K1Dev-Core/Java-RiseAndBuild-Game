@@ -561,7 +561,7 @@ public class GamePanel extends JPanel implements KeyListener {
         g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
         g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
         
-        g2d.setColor(new Color(50, 50, 50));
+        g2d.setColor(new Color(18, 18, 18));
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
         

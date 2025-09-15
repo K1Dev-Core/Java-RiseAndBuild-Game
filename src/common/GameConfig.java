@@ -27,7 +27,7 @@ public class GameConfig {
     
     public static final int RENDER_DISTANCE = 60; 
     public static final int VIEW_BUFFER = 60; 
-    public static final boolean DEBUG_DISTANCE = true; 
+    public static final boolean DEBUG_DISTANCE = false; 
     
     
     public static int calculateTopDownDistance(int x1, int y1, int x2, int y2) {
