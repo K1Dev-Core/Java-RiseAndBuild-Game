@@ -16,16 +16,15 @@ public class GamePanel extends JPanel {
     private boolean showAttackFeedback = false;
     private final Map<String, Integer> playerAttackFrames = new HashMap<>();
     private long lastAttackTime = 0;
-    private final float zoom = 7.0f;
+    private final float zoom = 5.0f;
     private SoundManager soundManager;
     private boolean gameStarted = false;
     private int fps = 0;
     private long lastFpsTime = 0;
     private int frameCount = 0;
-    // ระบบแจ้งเตือน
     private String notificationText = "";
     private long notificationTime = 0;
-    private static final long NOTIFICATION_DURATION = 3000; // 3 วินาที
+    private static final long NOTIFICATION_DURATION = 3000;
     private Set<String> previousPlayers = new HashSet<>();
 
     public GamePanel() {
@@ -108,7 +107,7 @@ public class GamePanel extends JPanel {
                     if (p.id.equals(playerId)) {
                         int barWidth = (int) (40 * zoom);
                         int barHeight = (int) (4 * zoom);
-                        int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom); // ใช้ขนาดเดียวกับตาราง
+                        int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom);
                         int x = getWidth() / 2 - barWidth / 2;
                         int y = getHeight() / 2 + scaledSize / 2 + 20;
 
@@ -134,7 +133,6 @@ public class GamePanel extends JPanel {
 
         Graphics2D g2d = (Graphics2D) g.create();
         try {
-            // ตั้งค่า rendering hints ที่เสถียรเพื่อลดการกระพริบ
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
@@ -150,7 +148,6 @@ public class GamePanel extends JPanel {
 
             drawBackground(g2d);
 
-            // เปลี่ยน rendering hints สำหรับตัวละคร
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
 
@@ -198,34 +195,51 @@ public class GamePanel extends JPanel {
     private void drawNotification(Graphics2D g2d) {
         long currentTime = System.currentTimeMillis();
 
-        // ตรวจสอบว่ามีข้อความแจ้งเตือนและยังไม่หมดเวลา
         if (!notificationText.isEmpty() && (currentTime - notificationTime) < NOTIFICATION_DURATION) {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
 
-            // ตั้งค่าสีและฟอนต์
-            g2d.setColor(new Color(255, 255, 255, 255)); // สีขาว
+            g2d.setColor(new Color(255, 255, 255, 255));
             g2d.setFont(new Font("Arial", Font.BOLD, 16));
 
-            // คำนวณตำแหน่งข้อความ (มุมขวาบน)
             FontMetrics fm = g2d.getFontMetrics();
             int textWidth = fm.stringWidth(notificationText);
-            int x = getWidth() - textWidth - 20; // 20 pixels จากขอบขวา
-            int y = 40; // 40 pixels จากขอบบน
+            int x = getWidth() - textWidth - 20;
+            int y = 40;
 
-            // วาดข้อความ
             g2d.setColor(new Color(255, 255, 255, 255));
             g2d.drawString(notificationText, x, y);
         } else if (!notificationText.isEmpty() && (currentTime - notificationTime) >= NOTIFICATION_DURATION) {
-            // ล้างข้อความเมื่อหมดเวลา
             notificationText = "";
         }
     }
 
     private void drawBackground(Graphics2D g2d) {
-        // วาดพื้นหลังสีเขียวเข้มธรรมดา
         g2d.setColor(new Color(20, 40, 20));
         g2d.fillRect(0, 0, getWidth(), getHeight());
+
+        drawGrid(g2d);
+    }
+
+    private void drawGrid(Graphics2D g2d) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null)
+            return;
+
+        int tileSize = (int) (GameConfig.TILE_SIZE * zoom);
+        int startX = getWidth() / 2 - (int) ((mainPlayer.x % GameConfig.TILE_SIZE) * zoom);
+        int startY = getHeight() / 2 - (int) ((mainPlayer.y % GameConfig.TILE_SIZE) * zoom);
+
+        g2d.setColor(new Color(40, 60, 40, 100));
+        g2d.setStroke(new BasicStroke(1));
+
+        for (int x = startX; x < getWidth(); x += tileSize) {
+            g2d.drawLine(x, 0, x, getHeight());
+        }
+
+        for (int y = startY; y < getHeight(); y += tileSize) {
+            g2d.drawLine(0, y, getWidth(), y);
+        }
     }
 
     public void checkPlayerMovement() {
@@ -290,14 +304,12 @@ public class GamePanel extends JPanel {
         synchronized (players) {
             Set<String> currentPlayers = new HashSet<>(players.keySet());
 
-            // ตรวจสอบผู้เล่นที่เข้าใหม่
             for (String playerId : currentPlayers) {
                 if (!previousPlayers.contains(playerId) && !playerId.equals(this.playerId)) {
                     showNotification("Player  " + playerId + " has joined the game");
                 }
             }
 
-            // ตรวจสอบผู้เล่นที่ออกไป
             for (String playerId : previousPlayers) {
                 if (!currentPlayers.contains(playerId) && !playerId.equals(this.playerId)) {
                     showNotification("Player " + playerId + " has left the game");
@@ -331,7 +343,7 @@ public class GamePanel extends JPanel {
             int srcX = currentFrame * frameWidth;
             int srcY = 0;
 
-            int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom); // ใช้ขนาดเดียวกับตาราง
+            int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom);
             int screenX, screenY;
 
             if (p.id.equals(playerId)) {
@@ -386,7 +398,7 @@ public class GamePanel extends JPanel {
                 g.drawString(status, getWidth() - textWidth - 20, getHeight() - 20);
             }
         } else {
-            int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom); // ใช้ขนาดเดียวกับตาราง
+            int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom);
             int screenX, screenY;
 
             if (p.id.equals(playerId)) {
@@ -419,7 +431,6 @@ public class GamePanel extends JPanel {
     }
 
     public boolean checkPlayerCollision(Player player, int newX, int newY) {
-        // ไม่มีการตรวจสอบ collision - วิ่งได้เรื่อยๆ
         return false;
     }
 

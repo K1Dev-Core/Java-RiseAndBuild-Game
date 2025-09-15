@@ -26,7 +26,7 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             playerId = "P" + socket.getPort();
-            Player player = new Player(playerId, 200, 200);
+            Player player = new Player(playerId, GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
             players.put(playerId, player);
 
             out.println("ID:" + playerId);
@@ -36,8 +36,10 @@ public class ClientHandler implements Runnable {
             while ((input = in.readLine()) != null) {
                 if (input.startsWith("MOVE:")) {
                     String dir = input.split(":")[1];
-                    player.move(dir);
-                    broadcast();
+                    if (canMove(player, dir)) {
+                        player.move(dir);
+                        broadcast();
+                    }
                 } else if (input.equals("STOP")) {
                     player.stop();
                     broadcast();
@@ -74,5 +76,9 @@ public class ClientHandler implements Runnable {
         for (ClientHandler c : clients) {
             c.send(msg);
         }
+    }
+
+    private boolean canMove(Player player, String direction) {
+        return true;
     }
 }

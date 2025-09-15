@@ -102,7 +102,7 @@ public class GameClient extends JFrame {
     }
 
     private void setupGameTimer() {
-        gameTimer = new javax.swing.Timer(16, e -> {
+        gameTimer = new javax.swing.Timer(16, _ -> {
             if (panel.isDisplayable() && panel.isShowing()) {
                 panel.updateGame();
                 handleMovement();

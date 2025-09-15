@@ -18,68 +18,77 @@ public class Player {
         if (!state.equals("attack2")) {
             this.state = "run";
             this.direction = dir;
-            
+
             int newX = x;
             int newY = y;
-            
+
             switch (dir) {
-                case "up":    newY -= GameConfig.MOVE_SPEED; break;
-                case "down":  newY += GameConfig.MOVE_SPEED; break;
-                case "left":  newX -= GameConfig.MOVE_SPEED; break;
-                case "right": newX += GameConfig.MOVE_SPEED; break;
+                case "up":
+                    newY -= GameConfig.MOVE_SPEED;
+                    break;
+                case "down":
+                    newY += GameConfig.MOVE_SPEED;
+                    break;
+                case "left":
+                    newX -= GameConfig.MOVE_SPEED;
+                    break;
+                case "right":
+                    newX += GameConfig.MOVE_SPEED;
+                    break;
             }
-            
+
             int maxX = GameConfig.MAP_WIDTH - GameConfig.PLAYER_SIZE;
             int maxY = GameConfig.MAP_HEIGHT - GameConfig.PLAYER_SIZE;
-            
+
             newX = Math.max(0, Math.min(newX, maxX));
             newY = Math.max(0, Math.min(newY, maxY));
-            
+
             x = newX;
             y = newY;
         }
     }
-    
+
     public boolean moveWithCollision(String dir, Object mapLoader) {
         if (!state.equals("attack2")) {
             this.state = "run";
             this.direction = dir;
-            
+
             int newX = x;
             int newY = y;
-            
+
             switch (dir) {
-                case "up":    newY -= GameConfig.MOVE_SPEED; break;
-                case "down":  newY += GameConfig.MOVE_SPEED; break;
-                case "left":  newX -= GameConfig.MOVE_SPEED; break;
-                case "right": newX += GameConfig.MOVE_SPEED; break;
+                case "up":
+                    newY -= GameConfig.MOVE_SPEED;
+                    break;
+                case "down":
+                    newY += GameConfig.MOVE_SPEED;
+                    break;
+                case "left":
+                    newX -= GameConfig.MOVE_SPEED;
+                    break;
+                case "right":
+                    newX += GameConfig.MOVE_SPEED;
+                    break;
             }
-            
-            // ไม่มีการตรวจสอบ collision - วิ่งได้เรื่อยๆ
-            
+
             x = newX;
             y = newY;
             return true;
         }
         return false;
     }
-    
-    
+
     public void setPosition(int x, int y) {
         this.x = x;
         this.y = y;
     }
-    
-    
-    
 
-    
     public void stop() {
         if (!state.equals("attack2")) {
             this.state = "idle";
         }
     }
-    
+
     public void attack() {
         if (canAttack && !state.equals("attack2")) {
             long currentTime = System.currentTimeMillis();
@@ -88,20 +97,19 @@ public class Player {
             this.canAttack = false;
         }
     }
-    
-    
+
     public void updateState() {
         if (state.equals("attack2")) {
             long currentTime = System.currentTimeMillis();
             long elapsed = currentTime - lastAttackTime;
-            
+
             if (elapsed >= GameConfig.ATTACK_DURATION) {
                 this.state = "idle";
             }
         } else if (!canAttack) {
             long currentTime = System.currentTimeMillis();
             long elapsed = currentTime - lastAttackTime;
-            
+
             if (elapsed >= GameConfig.ATTACK_DURATION + GameConfig.ATTACK_COOLDOWN) {
                 this.canAttack = true;
             }
