@@ -3,6 +3,7 @@ package client;
 import common.Chicken;
 import common.DroppedItem;
 import common.GameConfig;
+import common.Ghost;
 import common.Player;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -18,6 +19,8 @@ public class GamePanel extends JPanel implements KeyListener {
     private Image chickenSprite;
     private Image chickenHitSprite;
     private java.util.List<DroppedItem> droppedItems = new ArrayList<>();
+    private java.util.List<Ghost> ghosts = new ArrayList<>();
+    private Image ghostSprite;
     private GameClient gameClient;
     private int animationFrame = 0;
     private long lastFrameTime = 0;
@@ -98,6 +101,8 @@ public class GamePanel extends JPanel implements KeyListener {
         checkPlayerChanges();
         updateChickens();
         updateDroppedItems();
+        updateGhosts();
+        trySpawnGhost();
     }
     
     
@@ -186,6 +191,12 @@ public class GamePanel extends JPanel implements KeyListener {
             System.out.println("Failed to load chicken hit sprite");
         }
         
+        try {
+            ghostSprite = new ImageIcon("assets/sprites/enemy/Ghost/sprite_sheet_ghost.png").getImage();
+        } catch (Exception e) {
+            System.out.println("Failed to load ghost sprite");
+        }
+        
     }
 
     private void loadSounds() {
@@ -209,7 +220,7 @@ public class GamePanel extends JPanel implements KeyListener {
                 
                 for (Chicken existingChicken : chickens) {
                     double distance = GameConfig.calculatePreciseDistance(x, y, existingChicken.x, existingChicken.y);
-                    if (distance < 80) {
+                    if (distance < 120) {
                         validPosition = false;
                         break;
                     }
@@ -227,6 +238,40 @@ public class GamePanel extends JPanel implements KeyListener {
             chicken.update(chickens);
         }
         checkChickenRespawn();
+    }
+    
+    private void updateGhosts() {
+        Iterator<Ghost> iterator = ghosts.iterator();
+        while (iterator.hasNext()) {
+            Ghost ghost = iterator.next();
+            ghost.update();
+            if (ghost.shouldDespawn()) {
+                iterator.remove();
+            }
+        }
+    }
+    
+    private void trySpawnGhost() {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
+        Random random = new Random();
+        if (random.nextInt(1000) < GameConfig.GHOST_SPAWN_CHANCE) {
+            int angle = random.nextInt(360);
+            int distance = GameConfig.GHOST_SPAWN_DISTANCE + random.nextInt(30);
+            
+            int x = mainPlayer.x + (int) (Math.cos(Math.toRadians(angle)) * distance);
+            int y = mainPlayer.y + (int) (Math.sin(Math.toRadians(angle)) * distance);
+            
+            x = Math.max(0, Math.min(x, GameConfig.MAP_WIDTH - GameConfig.GHOST_SIZE));
+            y = Math.max(0, Math.min(y, GameConfig.MAP_HEIGHT - GameConfig.GHOST_SIZE));
+            
+            ghosts.add(new Ghost(x, y));
+            
+            if (soundManager != null) {
+                soundManager.playGhostSound();
+            }
+        }
     }
 
     public void showAttackFeedback() {
@@ -404,10 +449,7 @@ public class GamePanel extends JPanel implements KeyListener {
 
             
             drawChickens(g2d);
-            
-            
-            
-            
+            drawGhosts(g2d);
             drawDroppedItems(g2d);
             
             synchronized (players) {
@@ -895,6 +937,55 @@ public class GamePanel extends JPanel implements KeyListener {
         }
     }
     
+    private void drawGhosts(Graphics2D g2d) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
+        int mainPlayerScreenX = getWidth() / 2;
+        int mainPlayerScreenY = getHeight() / 2;
+        
+        for (Ghost ghost : ghosts) {
+            if (!ghost.isVisible) continue;
+            
+            int relativeX = ghost.x - mainPlayer.x;
+            int relativeY = ghost.y - mainPlayer.y;
+            int ghostScreenX = mainPlayerScreenX + (int) (relativeX * zoom);
+            int ghostScreenY = mainPlayerScreenY + (int) (relativeY * zoom);
+            
+            int scaledSize = (int) (GameConfig.GHOST_SIZE * zoom);
+            
+            int distance = (int) Math.round(GameConfig.calculatePreciseDistance(
+                mainPlayer.x + GameConfig.PLAYER_SIZE / 2,
+                mainPlayer.y + GameConfig.PLAYER_SIZE / 2,
+                ghost.x + GameConfig.GHOST_SIZE / 2,
+                ghost.y + GameConfig.GHOST_SIZE / 2
+            ));
+            
+            if (distance > GameConfig.RENDER_DISTANCE) {
+                continue;
+            }
+            
+            if (ghostSprite != null) {
+                int frameWidth = ghostSprite.getWidth(null) / GameConfig.GHOST_ANIMATION_FRAMES;
+                int frameHeight = ghostSprite.getHeight(null);
+                
+                int srcX = ghost.animationFrame * frameWidth;
+                int srcY = 0;
+                
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+                
+                g2d.drawImage(ghostSprite,
+                    ghostScreenX, ghostScreenY, ghostScreenX + scaledSize, ghostScreenY + scaledSize,
+                    srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                    null);
+            } else {
+                g2d.setColor(new Color(255, 255, 255, 150));
+                g2d.fillOval(ghostScreenX, ghostScreenY, scaledSize, scaledSize);
+            }
+        }
+    }
     
     private void drawDroppedItems(Graphics2D g2d) {
         Player mainPlayer = players.get(playerId);

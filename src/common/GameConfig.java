@@ -11,9 +11,9 @@ public class GameConfig {
     public static final int ANIMATION_FRAMES = 8;
     public static final int ANIMATION_SPEED = 12;
     public static final int MOVE_SPEED = 1;
-    public static final int ATTACK_DURATION = 640;
-    public static final int ATTACK_COOLDOWN = 200;
-    public static final int ATTACK_RANGE = 12;
+    public static final int ATTACK_DURATION = 400;
+    public static final int ATTACK_COOLDOWN = 350;
+    public static final int ATTACK_RANGE = 13;
 
     
     public static final int CHICKEN_SIZE = 12;
@@ -22,7 +22,13 @@ public class GameConfig {
 
     public static final int CHICKEN_HIT_FRAMES = 5;
     public static final int CHICKEN_REWARD = 5;
-    public static final int CHICKEN_RESPAWN_TIME = 8000; 
+    public static final int CHICKEN_RESPAWN_TIME = 8000;
+    
+    public static final int GHOST_SIZE = 16;
+    public static final int GHOST_ANIMATION_FRAMES = 4;
+    public static final int GHOST_SPAWN_CHANCE = 2;
+    public static final int GHOST_DURATION = 1000;
+    public static final int GHOST_SPAWN_DISTANCE = 40;
     
     
     public static final int RENDER_DISTANCE = 60; 

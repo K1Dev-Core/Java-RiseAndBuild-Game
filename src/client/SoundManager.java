@@ -10,6 +10,7 @@ public class SoundManager {
     private final Map<String, Clip> soundClips;
     private Clip footstepClip;
     private boolean isFootstepPlaying;
+    private Clip ghostClip;
     
     public SoundManager() {
         soundClips = new HashMap<>();
@@ -22,8 +23,10 @@ public class SoundManager {
             loadSound("slash", "assets/sounds/slash1.wav");
             loadSound("footsteps", "assets/sounds/footsteps.wav");
             loadSound("chicken-hit", "assets/chicken-hit.wav");
+            loadSound("ghost", "assets/sounds/ghost.wav");
             
             footstepClip = soundClips.get("footsteps");
+            ghostClip = soundClips.get("ghost");
             
         } catch (Exception e) {
             System.out.println("Failed to load sounds: " + e.getMessage());
@@ -92,6 +95,13 @@ public class SoundManager {
     
     public boolean isFootstepPlaying() {
         return isFootstepPlaying;
+    }
+    
+    public void playGhostSound() {
+        if (ghostClip != null) {
+            ghostClip.setFramePosition(0);
+            ghostClip.start();
+        }
     }
     
     public void cleanup() {
