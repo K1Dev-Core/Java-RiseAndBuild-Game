@@ -25,9 +25,9 @@ public class GameConfig {
     public static final int CHICKEN_RESPAWN_TIME = 8000; 
     
     
-    public static final int RENDER_DISTANCE = 100; 
-    public static final int VIEW_BUFFER = 50; 
-    public static final boolean DEBUG_DISTANCE = true; 
+    public static final int RENDER_DISTANCE = 75; 
+    public static final int VIEW_BUFFER = 75; 
+    public static final boolean DEBUG_DISTANCE = false; 
     
     
     public static int calculateTopDownDistance(int x1, int y1, int x2, int y2) {

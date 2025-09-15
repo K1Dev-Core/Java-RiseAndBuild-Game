@@ -143,8 +143,8 @@ public class GamePanel extends JPanel implements KeyListener {
         loadSprites();
         loadSounds();
         
-        
-        
+      
+        createChickens();
         
         loadInventoryFromDatabase();
         addKeyListener(this);
@@ -194,20 +194,37 @@ public class GamePanel extends JPanel implements KeyListener {
     private void createChickens() {
         chickens.clear();
         Random random = new Random();
-        for (int i = 0; i < GameConfig.CHICKEN_COUNT; i++) {
+        
+     
+        int numGroups = 2 + random.nextInt(2); 
+        int chickensPerGroup = GameConfig.CHICKEN_COUNT / numGroups;
+        int remainingChickens = GameConfig.CHICKEN_COUNT % numGroups;
+        
+        for (int group = 0; group < numGroups; group++) {
+      
+            int margin = 150;
+            int groupCenterX = margin + random.nextInt(GameConfig.MAP_WIDTH - 2 * margin);
+            int groupCenterY = margin + random.nextInt(GameConfig.MAP_HEIGHT - 2 * margin);
             
-            int centerX = GameConfig.MAP_WIDTH / 2;
-            int centerY = GameConfig.MAP_HEIGHT / 2;
-            int areaSize = 200; 
+  
+            int chickensInThisGroup = chickensPerGroup;
+            if (group < remainingChickens) {
+                chickensInThisGroup++;
+            }
             
-            int x = centerX + random.nextInt(areaSize) - areaSize/2;
-            int y = centerY + random.nextInt(areaSize) - areaSize/2;
+       
+            for (int i = 0; i < chickensInThisGroup; i++) {
             
-            
-            x = Math.max(0, Math.min(x, GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE));
-            y = Math.max(0, Math.min(y, GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE));
-            
-            chickens.add(new Chicken(x, y));
+                int groupAreaSize = 30;
+                int x = groupCenterX + random.nextInt(groupAreaSize) - groupAreaSize/2;
+                int y = groupCenterY + random.nextInt(groupAreaSize) - groupAreaSize/2;
+                
+         
+                x = Math.max(0, Math.min(x, GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE));
+                y = Math.max(0, Math.min(y, GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE));
+                
+                chickens.add(new Chicken(x, y));
+            }
         }
     }
     
@@ -557,21 +574,18 @@ public class GamePanel extends JPanel implements KeyListener {
     private void drawFogOfWar(Graphics2D g2d) {
         int centerX = getWidth() / 2;
         int centerY = getHeight() / 2;
-        int renderRadius = GameConfig.RENDER_DISTANCE;
+        int renderRadius = GameConfig.RENDER_DISTANCE * 5;
         
         RadialGradientPaint fogPaint = new RadialGradientPaint(
             centerX, centerY, renderRadius,
-            new float[]{0.0f, 0.8f, 1.0f},
-            new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 150), new Color(0, 0, 0, 255)}
+            new float[]{0.0f, 0.85f, 1.0f},
+            new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 70), new Color(0, 0, 0, 75)}
         );
         
         g2d.setPaint(fogPaint);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        g2d.setColor(new Color(255, 255, 255, 200));
-        g2d.setStroke(new BasicStroke(2));
-        g2d.drawOval(centerX - renderRadius, centerY - renderRadius, 
-                     renderRadius * 2, renderRadius * 2);
+
     }
 
     private void drawGrid(Graphics2D g2d) {
