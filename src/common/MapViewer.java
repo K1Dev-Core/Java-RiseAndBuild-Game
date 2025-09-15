@@ -10,108 +10,97 @@ import java.util.*;
 import java.util.List;
 
 
-// ===== Tile Struct =====
-class Tile {
-    int id, x, y;
+// =====================
+// TileAtlas: เก็บ mapping id → crop จาก tilesheet
+// =====================
+class TileAtlas {
+    Map<Integer, Rectangle> atlas = new HashMap<>();
+    int tileWidth, tileHeight;
 
-    Tile(int id, int x, int y) {
-        this.id = id;
-        this.x = x;
-        this.y = y;
-    }
-}
+    public static TileAtlas load(String path) throws IOException {
+        TileAtlas atlas = new TileAtlas();
+        List<String> lines = Files.readAllLines(Path.of(path));
 
-class MapLayer {
-    String name;
-    List<Tile> tiles = new ArrayList<>();
-}
-
-class GameMap {
-    int tileSize, mapWidth, mapHeight;
-    List<MapLayer> layers = new ArrayList<>();
-}
-
-// ===== SpriteSheet Loader =====
-class SpriteSheet {
-    private BufferedImage sheet;
-    private int tileSize;
-    private int columns;
-
-    public SpriteSheet(String path, int tileSize) throws IOException {
-        this.sheet = ImageIO.read(new File(path));
-        this.tileSize = tileSize;
-        this.columns = sheet.getWidth() / tileSize;
-    }
-
-    public BufferedImage getTile(int id) {
-        int x = (id % columns) * tileSize;
-        int y = (id / columns) * tileSize;
-        return sheet.getSubimage(x, y, tileSize, tileSize);
-    }
-}
-
-// ===== Minimal JSON Parser =====
-class SimpleJson {
-    static GameMap loadMap(String path) throws IOException {
-        String json = new String(Files.readAllBytes(Path.of(path)), java.nio.charset.StandardCharsets.UTF_8);
-        GameMap map = new GameMap();
-
-        map.tileSize = getInt(json, "\"tileSize\"");
-        map.mapWidth = getInt(json, "\"mapWidth\"");
-        map.mapHeight = getInt(json, "\"mapHeight\"");
-
-        String[] layerParts = json.split("\\{\\s*\"name\"");
-        for (int i = 1; i < layerParts.length; i++) {
-            String part = layerParts[i];
-            MapLayer layer = new MapLayer();
-
-            layer.name = getString(part, "");
-            String[] tileParts = part.split("\\{\\s*\"id\"");
-            for (int j = 1; j < tileParts.length; j++) {
-                String t = tileParts[j];
-                int id = getInt(t, "");
-                int x = getInt(t, "\"x\"");
-                int y = getInt(t, "\"y\"");
-                layer.tiles.add(new Tile(id, x, y));
+        int currentId = -1, x = 0, y = 0;
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("tile_width:")) {
+                atlas.tileWidth = Integer.parseInt(line.replaceAll("[^0-9]", ""));
+            } else if (line.startsWith("tile_height:")) {
+                atlas.tileHeight = Integer.parseInt(line.replaceAll("[^0-9]", ""));
+            } else if (line.startsWith("id:")) {
+                currentId = Integer.parseInt(line.replaceAll("[^0-9-]", ""));
+            } else if (line.startsWith("x:")) {
+                x = Integer.parseInt(line.replaceAll("[^0-9-]", ""));
+            } else if (line.startsWith("y:")) {
+                y = Integer.parseInt(line.replaceAll("[^0-9-]", ""));
+                if (currentId >= 0) {
+                    atlas.atlas.put(currentId, new Rectangle(x, y, atlas.tileWidth, atlas.tileHeight));
+                    currentId = -1;
+                }
             }
-            map.layers.add(layer);
+        }
+        return atlas;
+    }
+}
+
+// =====================
+// LevelMap: โหลด tilemap
+// =====================
+class LevelMap {
+    int width, height;
+    int[][] tiles;
+
+    public static LevelMap load(String path) throws IOException {
+        List<String> lines = Files.readAllLines(Path.of(path));
+        LevelMap map = new LevelMap();
+        List<Integer> data = new ArrayList<>();
+
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("width:")) {
+                map.width = Integer.parseInt(line.replaceAll("[^0-9]", ""));
+            } else if (line.startsWith("height:")) {
+                map.height = Integer.parseInt(line.replaceAll("[^0-9]", ""));
+            } else if (line.startsWith("data:")) {
+                String nums = line.replace("data:", "").trim();
+                String[] parts = nums.split(",");
+                for (String p : parts) {
+                    if (!p.isBlank()) {
+                        data.add(Integer.parseInt(p.trim()));
+                    }
+                }
+            }
+        }
+
+        map.tiles = new int[map.height][map.width];
+        for (int y = 0; y < map.height; y++) {
+            for (int x = 0; x < map.width; x++) {
+                map.tiles[y][x] = data.get(y * map.width + x);
+            }
         }
         return map;
     }
-
-    private static int getInt(String src, String key) {
-        int idx = key.isEmpty() ? 0 : src.indexOf(key);
-        if (idx == -1)
-            return 0;
-        String cut = key.isEmpty() ? src : src.substring(idx + key.length());
-        cut = cut.replaceAll("[^0-9-]", " ").trim().split(" ")[0];
-        return Integer.parseInt(cut);
-    }
-
-    private static String getString(String src, String key) {
-        int idx = key.isEmpty() ? 0 : src.indexOf(key);
-        if (idx == -1)
-            return "";
-        String cut = key.isEmpty() ? src : src.substring(idx + key.length());
-        int q1 = cut.indexOf('"');
-        int q2 = cut.indexOf('"', q1 + 1);
-        return cut.substring(q1 + 1, q2);
-    }
 }
 
-// ===== Panel แสดง Map + กล้อง + ซูม =====
+// =====================
+// MapPanel: รองรับซูม/เลื่อนกล้อง
+// =====================
 class MapPanel extends JPanel implements KeyListener, MouseWheelListener, MouseMotionListener {
-    private GameMap gameMap;
-    private SpriteSheet spriteSheet;
+    BufferedImage sheet;
+    TileAtlas atlas;
+    LevelMap level;
+
     private double cameraX = 0, cameraY = 0;
     private double zoom = 1.0;
 
     private int lastMouseX, lastMouseY;
     private boolean dragging = false;
 
-    public MapPanel(GameMap gameMap, SpriteSheet spriteSheet) {
-        this.gameMap = gameMap;
-        this.spriteSheet = spriteSheet;
+    public MapPanel(BufferedImage sheet, TileAtlas atlas, LevelMap level) {
+        this.sheet = sheet;
+        this.atlas = atlas;
+        this.level = level;
 
         setPreferredSize(new Dimension(800, 600));
 
@@ -120,6 +109,21 @@ class MapPanel extends JPanel implements KeyListener, MouseWheelListener, MouseM
         addMouseMotionListener(this);
         setFocusable(true);
         requestFocusInWindow();
+
+        // mouse pressed/released สำหรับ drag
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                dragging = true;
+                lastMouseX = e.getX();
+                lastMouseY = e.getY();
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                dragging = false;
+            }
+        });
     }
 
     @Override
@@ -127,20 +131,30 @@ class MapPanel extends JPanel implements KeyListener, MouseWheelListener, MouseM
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        AffineTransform at = new AffineTransform();
-        at.translate(-cameraX, -cameraY);
-        at.scale(zoom, zoom);
-        g2d.transform(at);
+        AffineTransform old = g2d.getTransform();
 
-        for (MapLayer layer : gameMap.layers) {
-            for (Tile t : layer.tiles) {
-                BufferedImage tileImg = spriteSheet.getTile(t.id);
-                g2d.drawImage(tileImg,
-                        t.x * gameMap.tileSize,
-                        t.y * gameMap.tileSize,
+        // Apply zoom และ camera
+        g2d.translate(getWidth() / 2.0, getHeight() / 2.0);
+        g2d.scale(zoom, zoom);
+        g2d.translate(-cameraX, -cameraY);
+
+        // วาด map
+        for (int y = 0; y < level.height; y++) {
+            for (int x = 0; x < level.width; x++) {
+                int id = level.tiles[y][x];
+                if (id < 0) continue;
+                Rectangle r = atlas.atlas.get(id);
+                if (r == null) continue;
+
+                g2d.drawImage(sheet,
+                        x * atlas.tileWidth, y * atlas.tileHeight,
+                        x * atlas.tileWidth + atlas.tileWidth, y * atlas.tileHeight + atlas.tileHeight,
+                        r.x, r.y, r.x + atlas.tileWidth, r.y + atlas.tileHeight,
                         null);
             }
         }
+
+        g2d.setTransform(old);
     }
 
     // ===== Keyboard: เลื่อนกล้อง =====
@@ -156,13 +170,8 @@ class MapPanel extends JPanel implements KeyListener, MouseWheelListener, MouseM
         repaint();
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-    }
+    @Override public void keyReleased(KeyEvent e) {}
+    @Override public void keyTyped(KeyEvent e) {}
 
     // ===== Mouse Scroll: Zoom =====
     @Override
@@ -191,24 +200,24 @@ class MapPanel extends JPanel implements KeyListener, MouseWheelListener, MouseM
     }
 
     @Override
-    public void mouseMoved(MouseEvent e) {
-        lastMouseX = e.getX();
-        lastMouseY = e.getY();
-    }
+    public void mouseMoved(MouseEvent e) {}
 }
 
-// ===== Main =====
+// =====================
+// Main
+// =====================
 public class MapViewer {
     public static void main(String[] args) throws Exception {
-        GameMap gameMap = SimpleJson.loadMap("./assets/map/map.json");
-        SpriteSheet sheet = new SpriteSheet("./assets/map/spritesheet.png", gameMap.tileSize);
+        BufferedImage sheet = ImageIO.read(new File("./assets/map/tilesheet.png"));
+        TileAtlas atlas = TileAtlas.load("./assets/map/tiles.tilesource");
+        LevelMap level = LevelMap.load("./assets/map/level.tilemap");
 
-        JFrame frame = new JFrame("Game Map Viewer");
-        MapPanel panel = new MapPanel(gameMap, sheet);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(panel);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+        JFrame f = new JFrame("Tilemap Viewer");
+        MapPanel panel = new MapPanel(sheet, atlas, level);
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        f.add(panel);
+        f.pack();
+        f.setLocationRelativeTo(null);
+        f.setVisible(true);
     }
 }

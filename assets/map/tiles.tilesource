@@ -1,0 +1,345 @@
+image: "tilesheet.png"
+    tile_width: 64
+    tile_height: 64
+    tile_margin: 0
+    tile_spacing: 0
+    collision: "tilesheet.png"
+    material_tag: "tile"
+    convex_hulls {
+  index: 100
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 101
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 102
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 103
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 104
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 105
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 150
+  count: 1
+  collision_group: "Bridge - horizontal"
+}
+convex_hulls {
+  index: 151
+  count: 1
+  collision_group: "Bridge - horizontal"
+}
+convex_hulls {
+  index: 152
+  count: 1
+  collision_group: "Bridge - horizontal"
+}
+convex_hulls {
+  index: 153
+  count: 1
+  collision_group: "Bridge - vertical"
+}
+convex_hulls {
+  index: 154
+  count: 1
+  collision_group: "Bridge - vertical"
+}
+convex_hulls {
+  index: 155
+  count: 1
+  collision_group: "Bridge - vertical"
+}
+convex_hulls {
+  index: 165
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 166
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 167
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 168
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 169
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 170
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 171
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 172
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 173
+  count: 1
+  collision_group: "Rocks"
+}
+convex_hulls {
+  index: 174
+  count: 1
+  collision_group: "Cliff"
+}
+convex_hulls {
+  index: 175
+  count: 1
+  collision_group: "Cliff"
+}
+convex_hulls {
+  index: 176
+  count: 1
+  collision_group: "Cliff"
+}
+convex_hulls {
+  index: 58
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 59
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 60
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 61
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 62
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 63
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 64
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 65
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 66
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 67
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 68
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 69
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 70
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 71
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 72
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 73
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 74
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 75
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 76
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 77
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 78
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 79
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 80
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 81
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 82
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 83
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 84
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 85
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 86
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 87
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 88
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 89
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 90
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 91
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 92
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 93
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 94
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 95
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 96
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 97
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 98
+  count: 1
+  collision_group: "Buildings"
+}
+convex_hulls {
+  index: 99
+  count: 1
+  collision_group: "Buildings"
+}
+    collision_groups: "Cliff"
+collision_groups: "Bridge - horizontal"
+collision_groups: "Bridge - vertical"
+collision_groups: "Buildings"
+collision_groups: "Rocks"
+    extrude_borders: 1
+    inner_padding: 0
+    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
