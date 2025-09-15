@@ -13,7 +13,7 @@ public class GameConfig {
     public static final int MOVE_SPEED = 1;
     public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 200;
-    public static final int ATTACK_RANGE = 25;
+    public static final int ATTACK_RANGE = 12;
 
     
     public static final int CHICKEN_SIZE = 12;
