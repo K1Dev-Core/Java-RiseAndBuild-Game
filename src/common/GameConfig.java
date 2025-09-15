@@ -13,23 +13,34 @@ public class GameConfig {
     public static final int MOVE_SPEED = 1;
     public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 200;
-    public static final int ATTACK_RANGE = 35;
+    public static final int ATTACK_RANGE = 30;
 
-    // Chicken Settings
+    
     public static final int CHICKEN_SIZE = 12;
-    public static final int CHICKEN_COUNT = 3;
+    public static final int CHICKEN_COUNT = 5;
     public static final int CHICKEN_ANIMATION_FRAMES = 11;
 
     public static final int CHICKEN_HIT_FRAMES = 5;
     public static final int CHICKEN_REWARD = 5;
-    public static final int CHICKEN_RESPAWN_TIME = 8000; // 10 วินาที
+    public static final int CHICKEN_RESPAWN_TIME = 8000; 
     
-    // Distance calculation methods
+    
+    public static final int RENDER_DISTANCE = 100; 
+    public static final int VIEW_BUFFER = 50; 
+    public static final boolean DEBUG_DISTANCE = true; 
+    
+    
     public static int calculateTopDownDistance(int x1, int y1, int x2, int y2) {
         int dx = Math.abs(x1 - x2);
         int dy = Math.abs(y1 - y2);
-        // ใช้ Chebyshev distance (King's move) ที่เหมาะสมกับเกมแนว top-down
-        return Math.max(dx, dy);
+        
+        
+        
+        
+        
+        int chebyshevDistance = Math.max(dx, dy);
+        double euclideanDistance = Math.sqrt(dx * dx + dy * dy);
+        return (int) (0.7 * chebyshevDistance + 0.3 * euclideanDistance);
     }
     
     public static int calculateEuclideanDistance(int x1, int y1, int x2, int y2) {

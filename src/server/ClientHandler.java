@@ -57,7 +57,7 @@ public class ClientHandler implements Runnable {
                     player.money = money;
                     broadcast();
                 } else if (input.startsWith("CHICKEN_ATTACK:")) {
-                    // จัดการการโจมตีไก่
+                    
                     String chickenData = input.split(":", 2)[1];
                     handleChickenAttack(chickenData);
                 }
@@ -104,12 +104,12 @@ public class ClientHandler implements Runnable {
         try {
             Chicken attackedChicken = Chicken.fromString(chickenData);
             
-            // หาไก่ที่ถูกโจมตีใน globalChickens
+            
             for (Chicken globalChicken : globalChickens) {
                 int distance = GameConfig.calculateTopDownDistance(globalChicken.x, globalChicken.y, attackedChicken.x, attackedChicken.y);
                 
                 if (distance < GameConfig.CHICKEN_SIZE) {
-                    // อัปเดตไก่ global
+                    
                     globalChicken.health = attackedChicken.health;
                     globalChicken.isAlive = attackedChicken.isAlive;
                     globalChicken.state = attackedChicken.state;
@@ -119,10 +119,10 @@ public class ClientHandler implements Runnable {
                     
                     System.out.println("Updated global chicken: " + globalChicken.x + ", " + globalChicken.y + " Health: " + globalChicken.health + " Alive: " + globalChicken.isAlive + " State: " + globalChicken.state);
                     
-                    // ส่งข้อมูลไปยังผู้เล่นทุกคน
+                    
                     broadcastChickenUpdate(globalChicken.toString());
                     
-                    // ส่งข้อมูลไก่ทั้งหมดไปยังผู้เล่นทุกคนเพื่อให้ sync
+                    
                     broadcastAllChickens();
                     break;
                 }

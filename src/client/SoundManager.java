@@ -54,7 +54,7 @@ public class SoundManager {
     
     public void playChickenHitSound() {
         try {
-            // สร้าง Clip ใหม่ทุกครั้งเพื่อให้เล่นพร้อมกันได้
+            
             File soundFile = new File("assets/sounds/chicken-hit.wav");
             if (soundFile.exists()) {
                 AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
@@ -63,7 +63,7 @@ public class SoundManager {
                 clip.setFramePosition(0);
                 clip.start();
                 
-                // ปิด Clip หลังจากเล่นเสร็จ
+                
                 clip.addLineListener(event -> {
                     if (event.getType() == LineEvent.Type.STOP) {
                         clip.close();

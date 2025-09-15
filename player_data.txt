@@ -1,0 +1,8 @@
+# Player Database
+# Format: PLAYER:playerName|money|level|experience|inventory
+# Inventory format: item1:quantity1,item2:quantity2
+
+PLAYER:Zaza|40|1|0|Coin:79,Wood:1,Feather:130,Iron:1
+PLAYER:555555555|45|1|0|Coin:20,Feather:35
+PLAYER:da|55|1|0|Coin:21,Wood:11,Feather:25,Iron:2,Stone:5
+PLAYER:10104|5|1|0|Coin:24,Feather:24

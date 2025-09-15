@@ -13,13 +13,13 @@ public class Chicken {
     public int maxHealth = 3;
     public long lastDirectionChange = 0;
     public int moveSpeed = 1;
-    public int animationSpeed = 8; // เฟรมต่อวินาที
+    public int animationSpeed = 8; 
     public int animationFrames = 11;
-    public String state = "idle"; // idle, hit, dead
+    public String state = "idle"; 
     public long deathTime = 0;
     public int hitFrame = 0;
     public long lastHitTime = 0;
-    public int originalX, originalY; // เก็บตำแหน่งเดิม
+    public int originalX, originalY; 
     
     private Random random = new Random();
     
@@ -34,7 +34,7 @@ public class Chicken {
     }
     
     public void update() {
-        // เมธอดเดิมสำหรับ backward compatibility
+        
         update(new java.util.ArrayList<>());
     }
     
@@ -42,7 +42,7 @@ public class Chicken {
         long currentTime = System.currentTimeMillis();
         
         if (state.equals("dead")) {
-            // ตรวจสอบการเกิดใหม่
+            
             if (currentTime - deathTime > GameConfig.CHICKEN_RESPAWN_TIME) {
                 respawn();
             }
@@ -51,7 +51,7 @@ public class Chicken {
         
         if (!isAlive) return;
         
-        // อัปเดต animation ตาม state
+        
         if (currentTime - lastAnimationTime > (1000 / animationSpeed)) {
             if (state.equals("hit")) {
                 hitFrame++;
@@ -67,7 +67,7 @@ public class Chicken {
             lastAnimationTime = currentTime;
         }
         
-        // ตรวจสอบขอบเขตแผนที่ - ป้องกันไม่ให้ไก่อยู่นอกขอบเขต
+        
         if (x < 0) x = 0;
         if (y < 0) y = 0;
         if (x > GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE) {
@@ -77,19 +77,19 @@ public class Chicken {
             y = GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE;
         }
         
-        // ตรวจสอบการชนกันกับไก่ตัวอื่น
+        
         checkChickenCollision(allChickens);
     }
     
     private void checkChickenCollision(java.util.List<Chicken> allChickens) {
         for (Chicken otherChicken : allChickens) {
             if (otherChicken != this && otherChicken.isAlive && !otherChicken.state.equals("dead")) {
-                int minDistance = GameConfig.CHICKEN_SIZE + 2; // ระยะห่างขั้นต่ำ 2 pixels
+                int minDistance = GameConfig.CHICKEN_SIZE + 2; 
                 
                 int distance = GameConfig.calculateTopDownDistance(x, y, otherChicken.x, otherChicken.y);
                 
                 if (distance < minDistance) {
-                    // มีการชนกัน - ขยับออกจากกัน
+                    
                     if (distance > 0) {
                         int dx = x - otherChicken.x;
                         int dy = y - otherChicken.y;
@@ -99,7 +99,7 @@ public class Chicken {
                         int newX = (int) (x + pushX);
                         int newY = (int) (y + pushY);
                         
-                        // ตรวจสอบขอบเขตก่อนย้าย
+                        
                         if (newX >= 0 && newX <= GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE) {
                             x = newX;
                         }
@@ -124,7 +124,7 @@ public class Chicken {
         state = "hit";
         hitFrame = 0;
         lastHitTime = System.currentTimeMillis();
-        lastAnimationTime = System.currentTimeMillis(); // ตั้งค่าเวลา animation ใหม่
+        lastAnimationTime = System.currentTimeMillis(); 
         
         if (health <= 0) {
             isAlive = false;
@@ -140,7 +140,7 @@ public class Chicken {
         isAlive = true;
         health = maxHealth;
         state = "idle";
-        x = originalX; // เกิดใหม่ที่จุดเดิม
+        x = originalX; 
         y = originalY;
         lastMoveTime = System.currentTimeMillis();
         lastAnimationTime = System.currentTimeMillis();

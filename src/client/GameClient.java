@@ -34,7 +34,7 @@ public class GameClient extends JFrame {
         out = new PrintWriter(socket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        panel = new GamePanel(players, playerId);
+        panel = new GamePanel(players, playerId, this);
         panel.setGameClient(this);
         add(panel);
         panel.setFocusable(true);
@@ -63,6 +63,11 @@ public class GameClient extends JFrame {
                         break;
                     case KeyEvent.VK_D:
                         dPressed = true;
+                        break;
+                    case KeyEvent.VK_I:
+                        
+                        panel.dispatchEvent(e);
+                        e.consume();
                         break;
                     case KeyEvent.VK_ESCAPE:
                         System.exit(0);
@@ -108,7 +113,7 @@ public class GameClient extends JFrame {
             if (panel.isDisplayable() && panel.isShowing()) {
                 panel.updateGame();
                 handleMovement();
-                panel.repaint(); // ใช้ repaint() โดยตรงเพื่อลดการกระพริบ
+                panel.repaint(); 
             }
         });
         gameTimer.start();
@@ -207,12 +212,12 @@ public class GameClient extends JFrame {
     }
     
     private void updateChickensFromServer(String chickensData) {
-        // อัปเดตไก่ทั้งหมดจากข้อมูลที่ได้รับจากเซิร์ฟเวอร์
+        
         panel.updateChickensFromServer(chickensData);
     }
     
     private void updateChickenFromServer(String chickenData) {
-        // อัปเดตไก่จากข้อมูลที่ได้รับจากเซิร์ฟเวอร์
+        
         panel.updateChickenFromServer(chickenData);
     }
     
