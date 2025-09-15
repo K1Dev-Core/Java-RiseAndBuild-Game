@@ -27,7 +27,7 @@ public class SoundManager {
             
         } catch (Exception e) {
             System.out.println("Failed to load sounds: " + e.getMessage());
-        }
+                 }
     }
     
     private void loadSound(String name, String path) {

@@ -13,11 +13,11 @@ public class GameConfig {
     public static final int MOVE_SPEED = 1;
     public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 200;
-    public static final int ATTACK_RANGE = 30;
+    public static final int ATTACK_RANGE = 25;
 
     
     public static final int CHICKEN_SIZE = 12;
-    public static final int CHICKEN_COUNT = 5;
+    public static final int CHICKEN_COUNT = 7;
     public static final int CHICKEN_ANIMATION_FRAMES = 11;
 
     public static final int CHICKEN_HIT_FRAMES = 5;
@@ -25,9 +25,9 @@ public class GameConfig {
     public static final int CHICKEN_RESPAWN_TIME = 8000; 
     
     
-    public static final int RENDER_DISTANCE = 75; 
-    public static final int VIEW_BUFFER = 75; 
-    public static final boolean DEBUG_DISTANCE = false; 
+    public static final int RENDER_DISTANCE = 60; 
+    public static final int VIEW_BUFFER = 60; 
+    public static final boolean DEBUG_DISTANCE = true; 
     
     
     public static int calculateTopDownDistance(int x1, int y1, int x2, int y2) {
@@ -44,9 +44,29 @@ public class GameConfig {
     }
     
     public static int calculateEuclideanDistance(int x1, int y1, int x2, int y2) {
-        int dx = x1 - x2;
-        int dy = y1 - y2;
-        return (int) Math.sqrt(dx * dx + dy * dy);
+        double dx = (double)(x1 - x2);
+        double dy = (double)(y1 - y2);
+        double distance = Math.sqrt(dx * dx + dy * dy);
+        return (int) Math.round(distance);
+    }
+    
+
+    public static double calculatePreciseDistance(int x1, int y1, int x2, int y2) {
+        double dx = (double)(x1 - x2);
+        double dy = (double)(y1 - y2);
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+
+    public static double calculateTopDownScreenDistance(int playerScreenX, int playerScreenY, 
+                                                       int targetScreenX, int targetScreenY, 
+                                                       float zoom) {
+        double dx = (double)(playerScreenX - targetScreenX);
+        double dy = (double)(playerScreenY - targetScreenY);
+        double screenDistance = Math.sqrt(dx * dx + dy * dy);
+        
+    
+        return screenDistance / zoom;
     }
 
 }

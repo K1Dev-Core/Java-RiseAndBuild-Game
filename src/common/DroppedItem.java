@@ -12,7 +12,7 @@ public class DroppedItem {
     public Image itemImage;
     
     
-    public static final int ITEM_SIZE = 6;
+    public static final int ITEM_SIZE = 4;
     
     public DroppedItem(int x, int y, String itemName, int quantity) {
         this.x = x;
@@ -68,12 +68,7 @@ public class DroppedItem {
         g2d.setColor(new Color(255, 255, 255, 255));
         g2d.drawString(displayText, textX, textY);
         
-        
-        long currentTime = System.currentTimeMillis();
-        if ((currentTime - dropTime) % 1000 < 500) {
-            g2d.setColor(new Color(255, 255, 0, 100));
-            g2d.fillOval(screenX - 2, screenY - 2, scaledSize + 1, scaledSize + 1);
-        }
+
     }
     
     public boolean isPlayerNearby(Player player, int pickupRange) {

@@ -195,36 +195,30 @@ public class GamePanel extends JPanel implements KeyListener {
         chickens.clear();
         Random random = new Random();
         
-     
-        int numGroups = 2 + random.nextInt(2); 
-        int chickensPerGroup = GameConfig.CHICKEN_COUNT / numGroups;
-        int remainingChickens = GameConfig.CHICKEN_COUNT % numGroups;
-        
-        for (int group = 0; group < numGroups; group++) {
-      
-            int margin = 150;
-            int groupCenterX = margin + random.nextInt(GameConfig.MAP_WIDTH - 2 * margin);
-            int groupCenterY = margin + random.nextInt(GameConfig.MAP_HEIGHT - 2 * margin);
+        for (int i = 0; i < GameConfig.CHICKEN_COUNT; i++) {
+            int x = 100 + random.nextInt(GameConfig.MAP_WIDTH - 200);
+            int y = 100 + random.nextInt(GameConfig.MAP_HEIGHT - 200);
+            boolean validPosition = false;
+            int attempts = 0;
             
-  
-            int chickensInThisGroup = chickensPerGroup;
-            if (group < remainingChickens) {
-                chickensInThisGroup++;
+            while (!validPosition && attempts < 100) {
+                x = 100 + random.nextInt(GameConfig.MAP_WIDTH - 200);
+                y = 100 + random.nextInt(GameConfig.MAP_HEIGHT - 200);
+                
+                validPosition = true;
+                
+                for (Chicken existingChicken : chickens) {
+                    double distance = GameConfig.calculatePreciseDistance(x, y, existingChicken.x, existingChicken.y);
+                    if (distance < 80) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                
+                attempts++;
             }
             
-       
-            for (int i = 0; i < chickensInThisGroup; i++) {
-            
-                int groupAreaSize = 30;
-                int x = groupCenterX + random.nextInt(groupAreaSize) - groupAreaSize/2;
-                int y = groupCenterY + random.nextInt(groupAreaSize) - groupAreaSize/2;
-                
-         
-                x = Math.max(0, Math.min(x, GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE));
-                y = Math.max(0, Math.min(y, GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE));
-                
-                chickens.add(new Chicken(x, y));
-            }
+            chickens.add(new Chicken(x, y));
         }
     }
     
@@ -272,18 +266,23 @@ public class GamePanel extends JPanel implements KeyListener {
                 int chickenCenterY = chicken.y + GameConfig.CHICKEN_SIZE / 2;
                 
                 
-                int playerCenterX = mainPlayer.x + GameConfig.PLAYER_SIZE / 2;
-                int playerCenterY = mainPlayer.y + GameConfig.PLAYER_SIZE / 2;
+                int playerScreenCenterX = getWidth() / 2;
+                int playerScreenCenterY = getHeight() / 2;
                 
+                int relativeX = chicken.x - mainPlayer.x;
+                int relativeY = chicken.y - mainPlayer.y;
+                int chickenScreenX = getWidth() / 2 + (int) (relativeX * zoom);
+                int chickenScreenY = getHeight() / 2 + (int) (relativeY * zoom);
                 
-                int distance = GameConfig.calculateTopDownDistance(
-                    playerCenterX, playerCenterY, 
-                    chickenCenterX, chickenCenterY
+                int chickenScreenCenterX = chickenScreenX + (int) (GameConfig.CHICKEN_SIZE * zoom / 2);
+                int chickenScreenCenterY = chickenScreenY + (int) (GameConfig.CHICKEN_SIZE * zoom / 2);
+                
+                double worldDistance = GameConfig.calculateTopDownScreenDistance(
+                    playerScreenCenterX, playerScreenCenterY,
+                    chickenScreenCenterX, chickenScreenCenterY,
+                    zoom
                 );
-                
-                int dx = Math.abs(playerCenterX - chickenCenterX);
-                int dy = Math.abs(playerCenterY - chickenCenterY);
-                System.out.println("Chicken at: " + chicken.x + ", " + chicken.y + " DX: " + dx + " DY: " + dy + " Distance: " + distance);
+                int distance = (int) Math.round(worldDistance);
                 
                 if (distance <= attackRange) {
                     System.out.println("Attacking chicken! Distance: " + distance + " <= " + attackRange);
@@ -439,12 +438,13 @@ public class GamePanel extends JPanel implements KeyListener {
                     int renderDistance = GameConfig.RENDER_DISTANCE;
                     
                     
-                    int distance = GameConfig.calculateTopDownDistance(
+                    double preciseDistance = GameConfig.calculatePreciseDistance(
                         mainPlayer.x + GameConfig.PLAYER_SIZE / 2,
                         mainPlayer.y + GameConfig.PLAYER_SIZE / 2,
                         p.x + GameConfig.PLAYER_SIZE / 2,
                         p.y + GameConfig.PLAYER_SIZE / 2
                     );
+                    int distance = (int) Math.round(preciseDistance);
                     
                     
                     if (distance > GameConfig.RENDER_DISTANCE) {
@@ -674,7 +674,8 @@ public class GamePanel extends JPanel implements KeyListener {
                 g2d.drawLine(mainPlayerScreenX, mainPlayerScreenY, otherPlayerScreenX, otherPlayerScreenY);
                 
                 
-                int distance = GameConfig.calculateTopDownDistance(0, 0, relativeX, relativeY);
+                    double preciseDistance = GameConfig.calculatePreciseDistance(0, 0, relativeX, relativeY);
+                    int distance = (int) Math.round(preciseDistance);
                 int midX = (mainPlayerScreenX + otherPlayerScreenX) / 2;
                 int midY = (mainPlayerScreenY + otherPlayerScreenY) / 2;
                 
@@ -714,12 +715,41 @@ public class GamePanel extends JPanel implements KeyListener {
             int scaledSize = (int) (GameConfig.CHICKEN_SIZE * zoom);
             
             
-            int distance = GameConfig.calculateTopDownDistance(
-                mainPlayer.x + GameConfig.PLAYER_SIZE / 2,
-                mainPlayer.y + GameConfig.PLAYER_SIZE / 2,
-                chicken.x + GameConfig.CHICKEN_SIZE / 2,
-                chicken.y + GameConfig.CHICKEN_SIZE / 2
+          
+            int playerScreenCenterX = getWidth() / 2; 
+            int playerScreenCenterY = getHeight() / 2;
+            
+            int chickenScreenCenterX = chickenScreenX + (int) (GameConfig.CHICKEN_SIZE * zoom / 2);
+            int chickenScreenCenterY = chickenScreenY + (int) (GameConfig.CHICKEN_SIZE * zoom / 2);
+            
+            double worldDistance = GameConfig.calculateTopDownScreenDistance(
+                playerScreenCenterX, playerScreenCenterY,
+                chickenScreenCenterX, chickenScreenCenterY,
+                zoom
             );
+            int distance = (int) Math.round(worldDistance);
+            
+            if (GameConfig.DEBUG_DISTANCE) {
+                int playerCenterX = mainPlayer.x + GameConfig.PLAYER_SIZE / 2;
+                int playerCenterY = mainPlayer.y + GameConfig.PLAYER_SIZE / 2;
+                int chickenCenterX = chicken.x + GameConfig.CHICKEN_SIZE / 2;
+                int chickenCenterY = chicken.y + GameConfig.CHICKEN_SIZE / 2;
+                
+                int dx = Math.abs(playerCenterX - chickenCenterX);
+                int dy = Math.abs(playerCenterY - chickenCenterY);
+                double screenDistance = Math.sqrt(
+                    Math.pow(playerScreenCenterX - chickenScreenCenterX, 2) + 
+                    Math.pow(playerScreenCenterY - chickenScreenCenterY, 2)
+                );
+                
+                System.out.println("Chicken Debug - World: (" + playerCenterX + "," + playerCenterY + 
+                    ") to (" + chickenCenterX + "," + chickenCenterY + 
+                    ") DX: " + dx + " DY: " + dy + 
+                    " | Screen: (" + playerScreenCenterX + "," + playerScreenCenterY + 
+                    ") to (" + chickenScreenCenterX + "," + chickenScreenCenterY + 
+                    ") ScreenDist: " + String.format("%.2f", screenDistance) + 
+                    " WorldDist: " + String.format("%.2f", worldDistance) + " Rounded: " + distance);
+            }
             
             
             if (distance > GameConfig.RENDER_DISTANCE) {
@@ -751,10 +781,11 @@ public class GamePanel extends JPanel implements KeyListener {
             
             synchronized (players) {
                 for (Player player : players.values()) {
-                    int playerCenterX = player.x + GameConfig.PLAYER_SIZE / 2;
-                    int playerCenterY = player.y + GameConfig.PLAYER_SIZE / 2;
+                    int playerCenterX2 = player.x + GameConfig.PLAYER_SIZE / 2;
+                    int playerCenterY2 = player.y + GameConfig.PLAYER_SIZE / 2;
                     
-                    int chickenDistance = GameConfig.calculateTopDownDistance(chickenWorldCenterX, chickenWorldCenterY, playerCenterX, playerCenterY);
+                    double preciseDistance2 = GameConfig.calculatePreciseDistance(chickenWorldCenterX, chickenWorldCenterY, playerCenterX2, playerCenterY2);
+                    int chickenDistance = (int) Math.round(preciseDistance2);
                     
                     if (chickenDistance < minDistance) {
                         minDistance = chickenDistance;
@@ -886,12 +917,13 @@ public class GamePanel extends JPanel implements KeyListener {
             int itemScreenY = mainPlayerScreenY + (int) (relativeY * zoom);
             
             
-            int distance = GameConfig.calculateTopDownDistance(
+            double preciseDistance = GameConfig.calculatePreciseDistance(
                 mainPlayer.x + GameConfig.PLAYER_SIZE / 2,
                 mainPlayer.y + GameConfig.PLAYER_SIZE / 2,
                 item.x + 8, 
                 item.y + 8
             );
+            int distance = (int) Math.round(preciseDistance);
             
             
             if (distance > GameConfig.RENDER_DISTANCE) {
@@ -1136,7 +1168,8 @@ public class GamePanel extends JPanel implements KeyListener {
                     
                     int minDistance = 7 ; 
                     
-                    int distance = GameConfig.calculateTopDownDistance(newX, newY, otherPlayer.x, otherPlayer.y);
+                    double preciseDistance = GameConfig.calculatePreciseDistance(newX, newY, otherPlayer.x, otherPlayer.y);
+                    int distance = (int) Math.round(preciseDistance);
                     
                     if (distance < minDistance) {
                         return true; 
@@ -1353,7 +1386,8 @@ public class GamePanel extends JPanel implements KeyListener {
             
             
             for (Chicken localChicken : chickens) {
-                int distance = GameConfig.calculateTopDownDistance(localChicken.x, localChicken.y, serverChicken.x, serverChicken.y);
+                double preciseDistance = GameConfig.calculatePreciseDistance(localChicken.x, localChicken.y, serverChicken.x, serverChicken.y);
+                int distance = (int) Math.round(preciseDistance);
                 
                 if (distance < GameConfig.CHICKEN_SIZE) {
                     
