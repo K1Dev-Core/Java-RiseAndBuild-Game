@@ -2,8 +2,6 @@ package common;
 
 public class GameConfig {
     public static final int PORT = 12345;
-    public static final int WIDTH = 1920;
-    public static final int HEIGHT = 1080;
     public static final int TILE_SIZE = 32;
     public static final int MAP_WIDTH_TILES = 50;
     public static final int MAP_HEIGHT_TILES = 50;
@@ -15,16 +13,17 @@ public class GameConfig {
     public static final int MOVE_SPEED = 1;
     public static final int ATTACK_DURATION = 640;
     public static final int ATTACK_COOLDOWN = 200;
+    public static final int ATTACK_RANGE = 15;
 
-    public static final int MUSHROOM_SIZE = 64; // 64x64 pixels
-    public static final int MUSHROOM_DETECTION_RANGE = TILE_SIZE * 3;
-    public static final int MUSHROOM_REWARD = 10;
-    public static final int MUSHROOM_COUNT = 20;
-    public static final int MUSHROOM_RESPAWN_TIME = 10000; // 10 วินาที
-
-    // Mushroom Animation Frames
-    public static final int MUSHROOM_IDLE_FRAMES = 7;
-    public static final int MUSHROOM_HIT_FRAMES = 5;
-    public static final int MUSHROOM_DIE_FRAMES = 16;
+    // Chicken Settings
+    public static final int CHICKEN_SIZE = 12;
+    public static final int CHICKEN_COUNT = 8;
+    public static final int CHICKEN_ANIMATION_FRAMES = 11;
+    public static final int CHICKEN_ANIMATION_SPEED = 8;
+    public static final int CHICKEN_MOVE_SPEED = 1;
+    public static final int CHICKEN_HEALTH = 3;
+    public static final int CHICKEN_HIT_FRAMES = 5;
+    public static final int CHICKEN_REWARD = 5;
+    public static final int CHICKEN_RESPAWN_TIME = 2000; // 10 วินาที
 
 }

@@ -24,16 +24,18 @@ public class GameClient extends JFrame {
     public GameClient() throws IOException {
         setTitle("2D Online Game");
         setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setUndecorated(true);
+   /*     setUndecorated(true);
+        setResizable(false);*/
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setResizable(false);
+
 
         socket = new Socket("localhost", GameConfig.PORT);
         out = new PrintWriter(socket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
         panel = new GamePanel(players, playerId);
+        panel.setGameClient(this);
         add(panel);
         panel.setFocusable(true);
 

@@ -1,5 +1,6 @@
 package client;
 
+import common.Chicken;
 import common.GameConfig;
 import common.Player;
 import java.awt.*;
@@ -10,6 +11,10 @@ public class GamePanel extends JPanel {
     private Map<String, Player> players;
     private String playerId;
     private final Map<String, Image> sprites = new HashMap<>();
+    private java.util.List<Chicken> chickens = new ArrayList<>();
+    private Image chickenSprite;
+    private Image chickenHitSprite;
+    private GameClient gameClient;
     private int animationFrame = 0;
     private long lastFrameTime = 0;
     private long attackFeedbackTime = 0;
@@ -48,6 +53,7 @@ public class GamePanel extends JPanel {
         updateAttackFeedback();
         updateFPS();
         checkPlayerChanges();
+        updateChickens();
     }
 
     public GamePanel(Map<String, Player> players, String playerId) {
@@ -58,6 +64,7 @@ public class GamePanel extends JPanel {
         this.gameStarted = true;
         loadSprites();
         loadSounds();
+        createChickens();
     }
 
     private void loadSprites() {
@@ -79,9 +86,48 @@ public class GamePanel extends JPanel {
             }
         }
 
+        // Load chicken sprite
+        try {
+            chickenSprite = new ImageIcon("assets/sprites/enemy/Chicken/sprite_sheet_Idle.png").getImage();
+        } catch (Exception e) {
+            System.out.println("Failed to load chicken sprite");
+        }
+        
+        // Load chicken hit sprite
+        try {
+            chickenHitSprite = new ImageIcon("assets/sprites/enemy/Chicken/sprite_sheet_Hit.png").getImage();
+        } catch (Exception e) {
+            System.out.println("Failed to load chicken hit sprite");
+        }
     }
 
     private void loadSounds() {
+    }
+    
+    private void createChickens() {
+        chickens.clear();
+        Random random = new Random();
+        for (int i = 0; i < GameConfig.CHICKEN_COUNT; i++) {
+            // สร้างไก่ในพื้นที่เล็กๆ ใกล้กัน
+            int centerX = GameConfig.MAP_WIDTH / 2;
+            int centerY = GameConfig.MAP_HEIGHT / 2;
+            int areaSize = 200; // พื้นที่ 200x200 pixels
+            
+            int x = centerX + random.nextInt(areaSize) - areaSize/2;
+            int y = centerY + random.nextInt(areaSize) - areaSize/2;
+            
+            // ตรวจสอบขอบเขต
+            x = Math.max(0, Math.min(x, GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE));
+            y = Math.max(0, Math.min(y, GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE));
+            
+            chickens.add(new Chicken(x, y));
+        }
+    }
+    
+    private void updateChickens() {
+        for (Chicken chicken : chickens) {
+            chicken.update();
+        }
     }
 
     public void showAttackFeedback() {
@@ -94,7 +140,47 @@ public class GamePanel extends JPanel {
             if (soundManager != null) {
                 soundManager.playSlashSound();
             }
-
+            
+            // ตรวจสอบการโจมตีไก่
+            checkChickenAttack();
+        }
+    }
+    
+    private void checkChickenAttack() {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
+        int attackRange = GameConfig.ATTACK_RANGE;
+        
+        for (Chicken chicken : chickens) {
+            if (chicken.canBeAttacked()) {
+                int dx = mainPlayer.x - chicken.x;
+                int dy = mainPlayer.y - chicken.y;
+                int distance = (int) Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance <= attackRange) {
+                    // โจมตีไก่ได้
+                    chicken.takeDamage(1);
+                    
+                    // เล่นเสียง chicken-hit
+                    if (soundManager != null) {
+                        soundManager.playChickenHitSound();
+                    }
+                    
+                    if (!chicken.isAlive) {
+                        // ไก่ตาย ให้เงินผู้เล่น
+                        mainPlayer.addMoney(chicken.getReward());
+                        showNotification("+$" + chicken.getReward() + " (Chicken killed!)");
+                        
+                        // ส่งข้อมูลเงินไปยัง server
+                        if (gameClient != null) {
+                            gameClient.sendMoneyUpdate(mainPlayer.money);
+                        }
+                    } else {
+                        showNotification("Chicken hit!");
+                    }
+                }
+            }
         }
     }
 
@@ -153,10 +239,37 @@ public class GamePanel extends JPanel {
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
 
+            // วาดไก่ก่อน (เลเยอร์ล่าง)
+            drawChickens(g2d);
+            
             synchronized (players) {
+                // วาดผู้เล่นคนอื่นก่อน (ไม่รวมผู้เล่นหลัก)
+                java.util.List<Player> otherPlayers = new ArrayList<>();
+                Player mainPlayer = null;
+                
                 for (Player p : players.values()) {
+                    if (p.id.equals(playerId)) {
+                        mainPlayer = p;
+                    } else {
+                        otherPlayers.add(p);
+                    }
+                }
+                
+                // เรียงผู้เล่นคนอื่นตามตำแหน่ง Y
+                otherPlayers.sort((p1, p2) -> Integer.compare(p1.y, p2.y));
+                
+                // วาดผู้เล่นคนอื่น
+                for (Player p : otherPlayers) {
                     drawPlayer(g2d, p);
                 }
+                
+                // วาดผู้เล่นหลักสุดท้าย (เลเยอร์สูงสุด)
+                if (mainPlayer != null) {
+                    drawPlayer(g2d, mainPlayer);
+                }
+                
+                // วาดเส้นแสดงระยะห่างระหว่างผู้เล่น
+                drawPlayerDistanceLines(g2d);
             }
 
             drawCooldownBar(g2d);
@@ -234,9 +347,14 @@ public class GamePanel extends JPanel {
     }
 
     private void drawBackground(Graphics2D g2d) {
-        g2d.setColor(new Color(25, 45, 25));
+        // พื้นหลังหลักสำหรับมุมมอง top-down
+        g2d.setColor(new Color(34, 139, 34)); // สีเขียวเข้มสำหรับพื้นหญ้า
         g2d.fillRect(0, 0, getWidth(), getHeight());
-
+        
+        // วาดกริดเพื่อให้ดูเป็นมิตรกับมุมมอง top-down
+        drawGrid(g2d);
+        
+        // วาดขอบเขตแผนที่
         drawMapBounds(g2d);
     }
 
@@ -255,9 +373,10 @@ public class GamePanel extends JPanel {
         int startX = playerScreenX - offsetX;
         int startY = playerScreenY - offsetY;
 
-        g2d.setColor(new Color(60, 80, 60, 150));
-        g2d.setStroke(new BasicStroke(1));
-
+        // วาดกริดหลัก (เส้นหนา)
+        g2d.setColor(new Color(0, 100, 0, 120));
+        g2d.setStroke(new BasicStroke(2));
+        
         for (int x = startX; x < getWidth() + tileSize; x += tileSize) {
             g2d.drawLine(x, 0, x, getHeight());
         }
@@ -265,7 +384,19 @@ public class GamePanel extends JPanel {
         for (int y = startY; y < getHeight() + tileSize; y += tileSize) {
             g2d.drawLine(0, y, getWidth(), y);
         }
+        
+        // วาดกริดย่อย (เส้นบาง)
+        g2d.setColor(new Color(0, 80, 0, 80));
+        g2d.setStroke(new BasicStroke(1));
+        
+        int subTileSize = tileSize / 4;
+        for (int x = startX; x < getWidth() + subTileSize; x += subTileSize) {
+            g2d.drawLine(x, 0, x, getHeight());
+        }
 
+        for (int y = startY; y < getHeight() + subTileSize; y += subTileSize) {
+            g2d.drawLine(0, y, getWidth(), y);
+        }
     }
 
     private void drawMapBounds(Graphics2D g2d) {
@@ -279,10 +410,130 @@ public class GamePanel extends JPanel {
         int mapStartX = getWidth() / 2 - (int) (mainPlayer.x * zoom);
         int mapStartY = getHeight() / 2 - (int) (mainPlayer.y * zoom);
 
-        g2d.setColor(new Color(255, 255, 0, 200));
-        g2d.setStroke(new BasicStroke(4));
-
+        // วาดขอบเขตแผนที่แบบ top-down
+        g2d.setColor(new Color(139, 69, 19, 200)); // สีน้ำตาลเข้ม
+        g2d.setStroke(new BasicStroke(6));
         g2d.drawRect(mapStartX, mapStartY, mapWidth, mapHeight);
+        
+        // วาดขอบเขตด้านใน
+        g2d.setColor(new Color(160, 82, 45, 150)); // สีน้ำตาลอ่อน
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawRect(mapStartX + 3, mapStartY + 3, mapWidth - 6, mapHeight - 6);
+    }
+    
+    private void drawPlayerDistanceLines(Graphics2D g2d) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
+        int mainPlayerScreenX = getWidth() / 2;
+        int mainPlayerScreenY = getHeight() / 2;
+        
+        g2d.setColor(new Color(255, 255, 0, 100)); // สีเหลืองโปร่งใส
+        g2d.setStroke(new BasicStroke(1));
+        
+        for (Player otherPlayer : players.values()) {
+            if (!otherPlayer.id.equals(playerId)) {
+                int relativeX = otherPlayer.x - mainPlayer.x;
+                int relativeY = otherPlayer.y - mainPlayer.y;
+                int otherPlayerScreenX = mainPlayerScreenX + (int) (relativeX * zoom);
+                int otherPlayerScreenY = mainPlayerScreenY + (int) (relativeY * zoom);
+                
+                // วาดเส้นเชื่อมระหว่างผู้เล่น
+                g2d.drawLine(mainPlayerScreenX, mainPlayerScreenY, otherPlayerScreenX, otherPlayerScreenY);
+                
+                // วาดระยะห่าง
+                int distance = (int) Math.sqrt(relativeX * relativeX + relativeY * relativeY);
+                int midX = (mainPlayerScreenX + otherPlayerScreenX) / 2;
+                int midY = (mainPlayerScreenY + otherPlayerScreenY) / 2;
+                
+                g2d.setColor(new Color(255, 255, 255, 200));
+                g2d.setFont(new Font("Arial", Font.BOLD, 10));
+                g2d.drawString(distance + "px", midX, midY);
+                g2d.setColor(new Color(255, 255, 0, 100));
+            }
+        }
+    }
+    
+    private void drawChickens(Graphics2D g2d) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null) return;
+        
+        int mainPlayerScreenX = getWidth() / 2;
+        int mainPlayerScreenY = getHeight() / 2;
+        
+        for (Chicken chicken : chickens) {
+            if (!chicken.isAlive || chicken.state.equals("dead")) continue;
+            
+            int relativeX = chicken.x - mainPlayer.x;
+            int relativeY = chicken.y - mainPlayer.y;
+            int chickenScreenX = mainPlayerScreenX + (int) (relativeX * zoom);
+            int chickenScreenY = mainPlayerScreenY + (int) (relativeY * zoom);
+            
+            int scaledSize = (int) (GameConfig.CHICKEN_SIZE * zoom);
+            
+            if (chicken.state.equals("hit") && chickenHitSprite != null) {
+                // วาด Hit sprite ของไก่
+                int frameWidth = chickenHitSprite.getWidth(null) / GameConfig.CHICKEN_HIT_FRAMES;
+                int frameHeight = chickenHitSprite.getHeight(null);
+                
+                int srcX = chicken.hitFrame * frameWidth;
+                int srcY = 0;
+                
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+                
+                g2d.drawImage(chickenHitSprite,
+                        chickenScreenX, chickenScreenY, chickenScreenX + scaledSize, chickenScreenY + scaledSize,
+                        srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                        null);
+            } else if (chickenSprite != null) {
+                // วาด sprite ปกติของไก่
+                int frameWidth = chickenSprite.getWidth(null) / GameConfig.CHICKEN_ANIMATION_FRAMES;
+                int frameHeight = chickenSprite.getHeight(null);
+                
+                int srcX = chicken.animationFrame * frameWidth;
+                int srcY = 0;
+                
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+                
+                g2d.drawImage(chickenSprite,
+                        chickenScreenX, chickenScreenY, chickenScreenX + scaledSize, chickenScreenY + scaledSize,
+                        srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                        null);
+            } else {
+                // วาดไก่แบบ fallback
+                g2d.setColor(new Color(255, 200, 0, 255)); // สีเหลือง
+                g2d.fillOval(chickenScreenX, chickenScreenY, scaledSize, scaledSize);
+                
+                g2d.setColor(new Color(255, 100, 0, 255)); // สีส้ม
+                g2d.fillOval(chickenScreenX + 2, chickenScreenY + 2, scaledSize - 4, scaledSize - 4);
+            }
+            
+            // วาดเงาของไก่
+            g2d.setColor(new Color(0, 0, 0, 40));
+            int shadowWidth = scaledSize / 2;
+            int shadowHeight = 3;
+            int shadowX = chickenScreenX + (scaledSize - shadowWidth) / 2;
+            int shadowY = chickenScreenY + scaledSize - 1;
+            g2d.fillOval(shadowX, shadowY, shadowWidth, shadowHeight);
+            
+            // วาดชื่อไก่
+            g2d.setColor(new Color(255, 255, 255, 200));
+            g2d.setFont(new Font("Arial", Font.BOLD, 10));
+            String chickenName = "Chicken";
+            int nameWidth = g2d.getFontMetrics().stringWidth(chickenName);
+            int nameX = chickenScreenX + (scaledSize - nameWidth) / 2;
+            int nameY = chickenScreenY - 5;
+            
+            // วาดพื้นหลังสำหรับชื่อ
+            g2d.setColor(new Color(0, 0, 0, 100));
+            g2d.fillRect(nameX - 2, nameY - 12, nameWidth + 4, 12);
+            
+            // วาดชื่อไก่
+            g2d.setColor(new Color(255, 255, 255, 255));
+            g2d.drawString(chickenName, nameX, nameY);
+        }
     }
 
     public void checkPlayerMovement() {
@@ -417,10 +668,42 @@ public class GamePanel extends JPanel {
                 g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
             }
 
+            // วาดเงาของผู้เล่น
+            if (g instanceof Graphics2D g2d) {
+                g2d.setColor(new Color(0, 0, 0, 80));
+                int shadowWidth = scaledSize / 3;
+                int shadowHeight = 5;
+                int shadowX = screenX + (scaledSize - shadowWidth) / 2;
+                int shadowY = screenY + scaledSize - 90;
+                g2d.fillOval(shadowX, shadowY, shadowWidth, shadowHeight);
+            }
+            
             g.drawImage(img,
                     screenX, screenY, screenX + scaledSize, screenY + scaledSize,
                     srcX, srcY, srcX + frameWidth, srcY + frameHeight,
                     null);
+
+            // วาดชื่อผู้เล่นเหนือหัว
+            if (g instanceof Graphics2D g2d) {
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+            }
+            
+            g.setColor(new Color(255, 255, 255, 255));
+            g.setFont(new Font("Arial", Font.BOLD, 12));
+            String playerName = p.id;
+            int nameWidth = g.getFontMetrics().stringWidth(playerName);
+            int nameX = screenX + (scaledSize - nameWidth) / 2;
+            int nameY = screenY - 8;
+            
+            // วาดพื้นหลังสำหรับชื่อ
+            g.setColor(new Color(0, 0, 0, 150));
+            g.fillRect(nameX - 2, nameY - 12, nameWidth + 4, 14);
+            
+            // วาดชื่อผู้เล่น
+            g.setColor(new Color(255, 255, 255, 255));
+            g.drawString(playerName, nameX, nameY);
 
             if (p.id.equals(playerId)) {
                 if (g instanceof Graphics2D g2d) {
@@ -460,25 +743,67 @@ public class GamePanel extends JPanel {
                 }
             }
 
+       
+            
             g.setColor(new Color(0, 0, 255, 255));
             g.fillRect(screenX, screenY, scaledSize, scaledSize);
+            
+            // วาดชื่อผู้เล่นเหนือหัว
             if (g instanceof Graphics2D g2d) {
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
                 g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
                 g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
             }
+            
             g.setColor(new Color(255, 255, 255, 255));
-            g.setFont(new Font("Arial", Font.BOLD, 10));
-            g.drawString(p.id + " - " + p.state, screenX, screenY - 5);
+            g.setFont(new Font("Arial", Font.BOLD, 12));
+            String playerName = p.id;
+            int nameWidth = g.getFontMetrics().stringWidth(playerName);
+            int nameX = screenX + (scaledSize - nameWidth) / 2;
+            int nameY = screenY - 8;
+            
+            // วาดพื้นหลังสำหรับชื่อ
+            g.setColor(new Color(0, 0, 0, 150));
+            g.fillRect(nameX - 2, nameY - 12, nameWidth + 4, 14);
+            
+            // วาดชื่อผู้เล่น
+            g.setColor(new Color(255, 255, 255, 255));
+            g.drawString(playerName, nameX, nameY);
         }
     }
 
     public boolean checkPlayerCollision(Player player, int newX, int newY) {
-        return false; // No collision detection needed
+        synchronized (players) {
+            for (Player otherPlayer : players.values()) {
+                if (!otherPlayer.id.equals(player.id)) {
+                    // ตรวจสอบการชนกันระหว่างผู้เล่น
+                    int minDistance = 7 ; // ระยะห่างขั้นต่ำ 4 pixels
+                    
+                    int dx = newX - otherPlayer.x;
+                    int dy = newY - otherPlayer.y;
+                    int distance = (int) Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < minDistance) {
+                        return true; // มีการชนกัน
+                    }
+                }
+            }
+        }
+        
+
+        return false; // ไม่มีการชนกัน
     }
 
     public Map<String, Player> getPlayers() {
         return players;
+    }
+    
+    public GameClient getGameClient() {
+        return gameClient;
+    }
+    
+    public void setGameClient(GameClient gameClient) {
+        this.gameClient = gameClient;
     }
 
     public void cleanup() {

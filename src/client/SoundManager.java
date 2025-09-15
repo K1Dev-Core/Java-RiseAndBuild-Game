@@ -21,6 +21,7 @@ public class SoundManager {
         try {
             loadSound("slash", "assets/sounds/slash1.wav");
             loadSound("footsteps", "assets/sounds/footsteps.wav");
+            loadSound("chicken-hit", "assets/chicken-hit.wav");
             
             footstepClip = soundClips.get("footsteps");
             
@@ -48,6 +49,29 @@ public class SoundManager {
         if (clip != null) {
             clip.setFramePosition(0);
             clip.start();
+        }
+    }
+    
+    public void playChickenHitSound() {
+        try {
+            // สร้าง Clip ใหม่ทุกครั้งเพื่อให้เล่นพร้อมกันได้
+            File soundFile = new File("assets/sounds/chicken-hit.wav");
+            if (soundFile.exists()) {
+                AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
+                Clip clip = AudioSystem.getClip();
+                clip.open(audioStream);
+                clip.setFramePosition(0);
+                clip.start();
+                
+                // ปิด Clip หลังจากเล่นเสร็จ
+                clip.addLineListener(event -> {
+                    if (event.getType() == LineEvent.Type.STOP) {
+                        clip.close();
+                    }
+                });
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to play chicken hit sound: " + e.getMessage());
         }
     }
     

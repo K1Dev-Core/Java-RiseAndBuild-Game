@@ -1,10 +1,11 @@
 package server;
 
-import common.Player;
 import common.GameConfig;
+import common.Player;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -26,7 +27,7 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             playerId = "P" + socket.getPort();
-            Player player = new Player(playerId, GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
+            Player player = new Player(playerId, GameConfig.MAP_WIDTH / 2 +new Random().nextInt(30) , GameConfig.MAP_HEIGHT / 2 +new Random().nextInt(50));
             players.put(playerId, player);
 
             out.println("ID:" + playerId);
