@@ -7,6 +7,7 @@ public class Player {
     public String state = "idle";
     public long lastAttackTime = 0;
     public boolean canAttack = true;
+    public int money = 0;
 
     public Player(String id, int x, int y) {
         this.id = id;
@@ -116,9 +117,13 @@ public class Player {
         }
     }
 
+    public void addMoney(int amount) {
+        this.money += amount;
+    }
+
     @Override
     public String toString() {
-        return id + "," + x + "," + y + "," + direction + "," + state;
+        return id + "," + x + "," + y + "," + direction + "," + state + "," + money;
     }
 
     public static Player fromString(String data) {
@@ -126,6 +131,9 @@ public class Player {
         Player p = new Player(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
         p.direction = parts[3];
         p.state = parts[4];
+        if (parts.length > 5) {
+            p.money = Integer.parseInt(parts[5]);
+        }
         return p;
     }
 }

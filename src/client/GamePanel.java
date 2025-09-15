@@ -16,7 +16,7 @@ public class GamePanel extends JPanel {
     private boolean showAttackFeedback = false;
     private final Map<String, Integer> playerAttackFrames = new HashMap<>();
     private long lastAttackTime = 0;
-    private final float zoom = 5.0f;
+    private final float zoom = 7.0f;
     private SoundManager soundManager;
     private boolean gameStarted = false;
     private int fps = 0;
@@ -61,6 +61,7 @@ public class GamePanel extends JPanel {
     }
 
     private void loadSprites() {
+        // Load player sprites
         String[] states = { "idle", "run", "attack1", "attack2" };
         String[] dirs = { "up", "down", "left", "right" };
 
@@ -93,6 +94,7 @@ public class GamePanel extends JPanel {
             if (soundManager != null) {
                 soundManager.playSlashSound();
             }
+
         }
     }
 
@@ -159,6 +161,7 @@ public class GamePanel extends JPanel {
 
             drawCooldownBar(g2d);
             drawPlayerCoordinates(g2d);
+            drawMoney(g2d);
             drawFPS(g2d);
             drawNotification(g2d);
         } finally {
@@ -177,6 +180,22 @@ public class GamePanel extends JPanel {
                     String coords = "X: " + p.x + " Y: " + p.y;
                     int textWidth = g2d.getFontMetrics().stringWidth(coords);
                     g2d.drawString(coords, getWidth() - textWidth - 20, getHeight() - 40);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void drawMoney(Graphics2D g2d) {
+        synchronized (players) {
+            for (Player p : players.values()) {
+                if (p.id.equals(playerId)) {
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                    g2d.setColor(new Color(255, 215, 0, 255));
+                    g2d.setFont(new Font("Arial", Font.BOLD, 14));
+                    String moneyText = "Money: " + p.money;
+                    g2d.drawString(moneyText, 20, 30);
                     break;
                 }
             }
@@ -215,10 +234,10 @@ public class GamePanel extends JPanel {
     }
 
     private void drawBackground(Graphics2D g2d) {
-        g2d.setColor(new Color(20, 40, 20));
+        g2d.setColor(new Color(25, 45, 25));
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        drawGrid(g2d);
+        drawMapBounds(g2d);
     }
 
     private void drawGrid(Graphics2D g2d) {
@@ -227,19 +246,43 @@ public class GamePanel extends JPanel {
             return;
 
         int tileSize = (int) (GameConfig.TILE_SIZE * zoom);
-        int startX = getWidth() / 2 - (int) ((mainPlayer.x % GameConfig.TILE_SIZE) * zoom);
-        int startY = getHeight() / 2 - (int) ((mainPlayer.y % GameConfig.TILE_SIZE) * zoom);
+        int playerScreenX = getWidth() / 2;
+        int playerScreenY = getHeight() / 2;
 
-        g2d.setColor(new Color(40, 60, 40, 100));
+        int offsetX = (int) ((mainPlayer.x % GameConfig.TILE_SIZE) * zoom);
+        int offsetY = (int) ((mainPlayer.y % GameConfig.TILE_SIZE) * zoom);
+
+        int startX = playerScreenX - offsetX;
+        int startY = playerScreenY - offsetY;
+
+        g2d.setColor(new Color(60, 80, 60, 150));
         g2d.setStroke(new BasicStroke(1));
 
-        for (int x = startX; x < getWidth(); x += tileSize) {
+        for (int x = startX; x < getWidth() + tileSize; x += tileSize) {
             g2d.drawLine(x, 0, x, getHeight());
         }
 
-        for (int y = startY; y < getHeight(); y += tileSize) {
+        for (int y = startY; y < getHeight() + tileSize; y += tileSize) {
             g2d.drawLine(0, y, getWidth(), y);
         }
+
+    }
+
+    private void drawMapBounds(Graphics2D g2d) {
+        Player mainPlayer = players.get(playerId);
+        if (mainPlayer == null)
+            return;
+
+        int mapWidth = (int) (GameConfig.MAP_WIDTH * zoom);
+        int mapHeight = (int) (GameConfig.MAP_HEIGHT * zoom);
+
+        int mapStartX = getWidth() / 2 - (int) (mainPlayer.x * zoom);
+        int mapStartY = getHeight() / 2 - (int) (mainPlayer.y * zoom);
+
+        g2d.setColor(new Color(255, 255, 0, 200));
+        g2d.setStroke(new BasicStroke(4));
+
+        g2d.drawRect(mapStartX, mapStartY, mapWidth, mapHeight);
     }
 
     public void checkPlayerMovement() {
@@ -431,7 +474,11 @@ public class GamePanel extends JPanel {
     }
 
     public boolean checkPlayerCollision(Player player, int newX, int newY) {
-        return false;
+        return false; // No collision detection needed
+    }
+
+    public Map<String, Player> getPlayers() {
+        return players;
     }
 
     public void cleanup() {

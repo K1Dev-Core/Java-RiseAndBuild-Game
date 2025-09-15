@@ -47,6 +47,10 @@ public class ClientHandler implements Runnable {
                     player.attack();
                     broadcast();
                     broadcast();
+                } else if (input.startsWith("MONEY:")) {
+                    int money = Integer.parseInt(input.split(":")[1]);
+                    player.money = money;
+                    broadcast();
                 }
             }
         } catch (IOException e) {

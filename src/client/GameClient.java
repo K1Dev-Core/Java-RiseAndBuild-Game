@@ -106,7 +106,7 @@ public class GameClient extends JFrame {
             if (panel.isDisplayable() && panel.isShowing()) {
                 panel.updateGame();
                 handleMovement();
-                panel.repaint();
+                panel.repaint(); // ใช้ repaint() โดยตรงเพื่อลดการกระพริบ
             }
         });
         gameTimer.start();
@@ -126,12 +126,44 @@ public class GameClient extends JFrame {
         }
 
         if (!direction.isEmpty()) {
-            out.println("MOVE:" + direction);
-            panel.checkPlayerMovement();
+            if (canMoveInDirection(direction)) {
+                out.println("MOVE:" + direction);
+                panel.checkPlayerMovement();
+            }
         } else {
             out.println("STOP");
         }
 
+    }
+
+    public void sendMoneyUpdate(int money) {
+        out.println("MONEY:" + money);
+    }
+
+    private boolean canMoveInDirection(String direction) {
+        Player mainPlayer = panel.getPlayers().get(playerId);
+        if (mainPlayer == null)
+            return true;
+
+        int newX = mainPlayer.x;
+        int newY = mainPlayer.y;
+
+        switch (direction) {
+            case "up":
+                newY -= GameConfig.MOVE_SPEED;
+                break;
+            case "down":
+                newY += GameConfig.MOVE_SPEED;
+                break;
+            case "left":
+                newX -= GameConfig.MOVE_SPEED;
+                break;
+            case "right":
+                newX += GameConfig.MOVE_SPEED;
+                break;
+        }
+
+        return !panel.checkPlayerCollision(mainPlayer, newX, newY);
     }
 
     private void listen() {
