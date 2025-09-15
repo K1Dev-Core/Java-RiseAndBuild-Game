@@ -23,8 +23,8 @@ public class GameClient extends JFrame {
 
     public GameClient() throws IOException {
         setTitle("2D Online Game");
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // ขยายให้เต็มหน้าจอ
-        setUndecorated(true); // ซ่อนขอบหน้าต่าง
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setUndecorated(true);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);

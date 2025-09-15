@@ -2,7 +2,6 @@ package client;
 
 import common.GameConfig;
 import common.Player;
-import common.GameMap;
 import java.awt.*;
 import java.util.*;
 import javax.swing.*;
@@ -23,7 +22,6 @@ public class GamePanel extends JPanel {
     private int fps = 0;
     private long lastFpsTime = 0;
     private int frameCount = 0;
-    private GameMap gameMap;
     // ระบบแจ้งเตือน
     private String notificationText = "";
     private long notificationTime = 0;
@@ -37,14 +35,6 @@ public class GamePanel extends JPanel {
         setOpaque(true);
         setBackground(Color.BLACK);
         setIgnoreRepaint(false);
-
-        // โหลดแผนที่
-        try {
-            gameMap = new GameMap("assets/map/map.json", "assets/map/spritesheet.png");
-        } catch (Exception e) {
-            System.err.println("ไม่สามารถโหลดแผนที่ได้: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 
     public void setPlayerId(String playerId) {
@@ -236,24 +226,6 @@ public class GamePanel extends JPanel {
         // วาดพื้นหลังสีเขียวเข้มธรรมดา
         g2d.setColor(new Color(20, 40, 20));
         g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // วาดแผนที่
-        if (gameMap != null) {
-            Player mainPlayer = players.get(playerId);
-            if (mainPlayer != null) {
-                // คำนวณตำแหน่งกล้อง
-                int cameraX = (int) (mainPlayer.x * zoom) - getWidth() / 2;
-                int cameraY = (int) (mainPlayer.y * zoom) - getHeight() / 2;
-
-                // ใช้ interpolation ที่เสถียรสำหรับแผนที่
-                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-
-                // วาดแผนที่
-                gameMap.render(g2d, cameraX, cameraY, getWidth(), getHeight());
-            }
-        }
     }
 
     public void checkPlayerMovement() {
@@ -447,32 +419,7 @@ public class GamePanel extends JPanel {
     }
 
     public boolean checkPlayerCollision(Player player, int newX, int newY) {
-        // ตรวจสอบ collision กับแผนที่
-        if (gameMap != null) {
-            // ตรวจสอบ collision ที่ตำแหน่งใหม่
-            int playerSize = (int) (GameConfig.PLAYER_SIZE * zoom);
-
-            // ตรวจสอบ collision ที่มุมทั้ง 4 ของตัวละคร
-            int[] checkPoints = {
-                    newX, newY, // มุมซ้ายบน
-                    newX + playerSize, newY, // มุมขวาบน
-                    newX, newY + playerSize, // มุมซ้ายล่าง
-                    newX + playerSize, newY + playerSize // มุมขวาล่าง
-            };
-
-            for (int i = 0; i < checkPoints.length; i += 2) {
-                int checkX = checkPoints[i];
-                int checkY = checkPoints[i + 1];
-
-                // แปลงจากพิกัดหน้าจอเป็นพิกัดโลก
-                int worldX = checkX + (int) (player.x * zoom) - getWidth() / 2;
-                int worldY = checkY + (int) (player.y * zoom) - getHeight() / 2;
-
-                if (gameMap.hasCollisionAt(worldX, worldY)) {
-                    return true;
-                }
-            }
-        }
+        // ไม่มีการตรวจสอบ collision - วิ่งได้เรื่อยๆ
         return false;
     }
 
