@@ -141,6 +141,10 @@ public class GameClient extends JFrame {
     public void sendMoneyUpdate(int money) {
         out.println("MONEY:" + money);
     }
+    
+    public void sendChickenAttack(String chickenData) {
+        out.println("CHICKEN_ATTACK:" + chickenData);
+    }
 
     private boolean canMoveInDirection(String direction) {
         Player mainPlayer = panel.getPlayers().get(playerId);
@@ -178,6 +182,10 @@ public class GameClient extends JFrame {
                     panel.requestFocus();
                 } else if (line.startsWith("PLAYERS:")) {
                     updatePlayers(line.substring(8));
+                } else if (line.startsWith("CHICKENS:")) {
+                    updateChickensFromServer(line.substring(9));
+                } else if (line.startsWith("CHICKEN_UPDATE:")) {
+                    updateChickenFromServer(line.substring(15));
                 }
             }
         } catch (IOException e) {
@@ -197,7 +205,22 @@ public class GameClient extends JFrame {
             }
         }
     }
+    
+    private void updateChickensFromServer(String chickensData) {
+        // อัปเดตไก่ทั้งหมดจากข้อมูลที่ได้รับจากเซิร์ฟเวอร์
+        panel.updateChickensFromServer(chickensData);
+    }
+    
+    private void updateChickenFromServer(String chickenData) {
+        // อัปเดตไก่จากข้อมูลที่ได้รับจากเซิร์ฟเวอร์
+        panel.updateChickenFromServer(chickenData);
+    }
+    
 
+    public GamePanel getGamePanel() {
+        return panel;
+    }
+    
     public static void main(String[] args) throws Exception {
         new GameClient();
     }

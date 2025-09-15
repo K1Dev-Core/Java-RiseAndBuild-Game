@@ -34,6 +34,11 @@ public class Chicken {
     }
     
     public void update() {
+        // เมธอดเดิมสำหรับ backward compatibility
+        update(new java.util.ArrayList<>());
+    }
+    
+    public void update(java.util.List<Chicken> allChickens) {
         long currentTime = System.currentTimeMillis();
         
         if (state.equals("dead")) {
@@ -50,9 +55,11 @@ public class Chicken {
         if (currentTime - lastAnimationTime > (1000 / animationSpeed)) {
             if (state.equals("hit")) {
                 hitFrame++;
+                System.out.println("Chicken hit animation frame: " + hitFrame + "/" + GameConfig.CHICKEN_HIT_FRAMES);
                 if (hitFrame >= GameConfig.CHICKEN_HIT_FRAMES) {
                     state = "idle";
                     hitFrame = 0;
+                    System.out.println("Chicken hit animation finished, returning to idle");
                 }
             } else {
                 animationFrame = (animationFrame + 1) % animationFrames;
@@ -69,21 +76,63 @@ public class Chicken {
         if (y > GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE) {
             y = GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE;
         }
+        
+        // ตรวจสอบการชนกันกับไก่ตัวอื่น
+        checkChickenCollision(allChickens);
+    }
+    
+    private void checkChickenCollision(java.util.List<Chicken> allChickens) {
+        for (Chicken otherChicken : allChickens) {
+            if (otherChicken != this && otherChicken.isAlive && !otherChicken.state.equals("dead")) {
+                int minDistance = GameConfig.CHICKEN_SIZE + 2; // ระยะห่างขั้นต่ำ 2 pixels
+                
+                int distance = GameConfig.calculateTopDownDistance(x, y, otherChicken.x, otherChicken.y);
+                
+                if (distance < minDistance) {
+                    // มีการชนกัน - ขยับออกจากกัน
+                    if (distance > 0) {
+                        int dx = x - otherChicken.x;
+                        int dy = y - otherChicken.y;
+                        double pushX = (dx / (double) distance) * (minDistance - distance) / 2;
+                        double pushY = (dy / (double) distance) * (minDistance - distance) / 2;
+                        
+                        int newX = (int) (x + pushX);
+                        int newY = (int) (y + pushY);
+                        
+                        // ตรวจสอบขอบเขตก่อนย้าย
+                        if (newX >= 0 && newX <= GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE) {
+                            x = newX;
+                        }
+                        if (newY >= 0 && newY <= GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE) {
+                            y = newY;
+                        }
+                    }
+                }
+            }
+        }
     }
     
 
     public void takeDamage(int damage) {
-        if (!isAlive || state.equals("dead")) return;
+        if (!isAlive || state.equals("dead")) {
+            System.out.println("Chicken cannot be attacked - not alive or already dead");
+            return;
+        }
         
+        System.out.println("Chicken taking damage: " + damage + " Health before: " + health);
         health -= damage;
         state = "hit";
         hitFrame = 0;
         lastHitTime = System.currentTimeMillis();
+        lastAnimationTime = System.currentTimeMillis(); // ตั้งค่าเวลา animation ใหม่
         
         if (health <= 0) {
             isAlive = false;
             state = "dead";
             deathTime = System.currentTimeMillis();
+            System.out.println("Chicken died!");
+        } else {
+            System.out.println("Chicken health after damage: " + health);
         }
     }
     
@@ -110,7 +159,7 @@ public class Chicken {
     
     @Override
     public String toString() {
-        return "Chicken," + x + "," + y + "," + direction + "," + animationFrame + "," + isAlive + "," + health;
+        return "Chicken," + x + "," + y + "," + direction + "," + animationFrame + "," + isAlive + "," + health + "," + state + "," + deathTime;
     }
     
     public static Chicken fromString(String data) {
@@ -120,6 +169,12 @@ public class Chicken {
         chicken.animationFrame = Integer.parseInt(parts[4]);
         chicken.isAlive = Boolean.parseBoolean(parts[5]);
         chicken.health = Integer.parseInt(parts[6]);
+        if (parts.length > 7) {
+            chicken.state = parts[7];
+        }
+        if (parts.length > 8) {
+            chicken.deathTime = Long.parseLong(parts[8]);
+        }
         return chicken;
     }
 }

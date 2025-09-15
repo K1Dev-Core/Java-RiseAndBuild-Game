@@ -4,10 +4,12 @@ import common.Chicken;
 import common.GameConfig;
 import common.Player;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.*;
 import javax.swing.*;
 
-public class GamePanel extends JPanel {
+public class GamePanel extends JPanel implements KeyListener {
     private Map<String, Player> players;
     private String playerId;
     private final Map<String, Image> sprites = new HashMap<>();
@@ -24,6 +26,9 @@ public class GamePanel extends JPanel {
     private final float zoom = 7.0f;
     private SoundManager soundManager;
     private boolean gameStarted = false;
+    private InventoryGUI inventoryGUI;
+    private JSONDatabase database;
+    private String currentPlayerName;
     private int fps = 0;
     private long lastFpsTime = 0;
     private int frameCount = 0;
@@ -62,9 +67,14 @@ public class GamePanel extends JPanel {
         this.playerId = playerId;
         this.soundManager = new SoundManager();
         this.gameStarted = true;
+        this.inventoryGUI = new InventoryGUI();
+        this.database = new JSONDatabase();
         loadSprites();
         loadSounds();
-        createChickens();
+        addKeyListener(this);
+        setFocusable(true);
+        requestFocusInWindow();
+        // ไม่สร้างไก่ที่นี่ เพราะจะรับจากเซิร์ฟเวอร์
     }
 
     private void loadSprites() {
@@ -126,8 +136,9 @@ public class GamePanel extends JPanel {
     
     private void updateChickens() {
         for (Chicken chicken : chickens) {
-            chicken.update();
+            chicken.update(chickens);
         }
+        checkChickenRespawn();
     }
 
     public void showAttackFeedback() {
@@ -148,19 +159,44 @@ public class GamePanel extends JPanel {
     
     private void checkChickenAttack() {
         Player mainPlayer = players.get(playerId);
-        if (mainPlayer == null) return;
+        if (mainPlayer == null) {
+            System.out.println("Main player is null!");
+            return;
+        }
         
         int attackRange = GameConfig.ATTACK_RANGE;
+        System.out.println("Checking chicken attack. Player at: " + mainPlayer.x + ", " + mainPlayer.y + " Attack range: " + attackRange);
+        System.out.println("Number of chickens: " + chickens.size());
         
         for (Chicken chicken : chickens) {
             if (chicken.canBeAttacked()) {
-                int dx = mainPlayer.x - chicken.x;
-                int dy = mainPlayer.y - chicken.y;
-                int distance = (int) Math.sqrt(dx * dx + dy * dy);
+                // คำนวณจุดกลางของไก่
+                int chickenCenterX = chicken.x + GameConfig.CHICKEN_SIZE / 2;
+                int chickenCenterY = chicken.y + GameConfig.CHICKEN_SIZE / 2;
                 
-                if (distance <= attackRange) {
+                // คำนวณจุดกลางของผู้เล่น
+                int playerCenterX = mainPlayer.x + GameConfig.PLAYER_SIZE / 2;
+                int playerCenterY = mainPlayer.y + GameConfig.PLAYER_SIZE / 2;
+                
+                // ตรวจสอบการโจมตีเฉพาะทิศทางตรง (ซ้าย-ขวา-บน-ล่าง)
+                int dx = Math.abs(playerCenterX - chickenCenterX);
+                int dy = Math.abs(playerCenterY - chickenCenterY);
+                
+                // ตรวจสอบว่าไก่อยู่ในทิศทางตรงหรือไม่ (ไม่ใช่แนวเฉียง)
+                boolean isDirectDirection = (dx == 0 && dy <= attackRange) || (dy == 0 && dx <= attackRange);
+                
+                System.out.println("Chicken at: " + chicken.x + ", " + chicken.y + " DX: " + dx + " DY: " + dy + " Direct: " + isDirectDirection);
+                
+                if (isDirectDirection) {
+                    System.out.println("Attacking chicken! DX: " + dx + " DY: " + dy + " <= " + attackRange);
                     // โจมตีไก่ได้
                     chicken.takeDamage(1);
+                    System.out.println("Chicken health after damage: " + chicken.health);
+                    
+                    // ส่งข้อมูลการโจมตีไก่ไปยังเซิร์ฟเวอร์
+                    if (gameClient != null) {
+                        gameClient.sendChickenAttack(chicken.toString());
+                    }
                     
                     // เล่นเสียง chicken-hit
                     if (soundManager != null) {
@@ -171,6 +207,10 @@ public class GamePanel extends JPanel {
                         // ไก่ตาย ให้เงินผู้เล่น
                         mainPlayer.addMoney(chicken.getReward());
                         showNotification("+$" + chicken.getReward() + " (Chicken killed!)");
+                        
+                        // เพิ่มไอเท็มในคลังเก็บของ
+                        addToInventory("Chicken Meat", 1);
+                        addToInventory("Feather", 2);
                         
                         // ส่งข้อมูลเงินไปยัง server
                         if (gameClient != null) {
@@ -218,6 +258,11 @@ public class GamePanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        
+        // ตรวจสอบว่า GamePanel มี focus หรือไม่
+        if (!hasFocus()) {
+            requestFocusInWindow();
+        }
 
         Graphics2D g2d = (Graphics2D) g.create();
         try {
@@ -442,7 +487,7 @@ public class GamePanel extends JPanel {
                 g2d.drawLine(mainPlayerScreenX, mainPlayerScreenY, otherPlayerScreenX, otherPlayerScreenY);
                 
                 // วาดระยะห่าง
-                int distance = (int) Math.sqrt(relativeX * relativeX + relativeY * relativeY);
+                int distance = GameConfig.calculateTopDownDistance(0, 0, relativeX, relativeY);
                 int midX = (mainPlayerScreenX + otherPlayerScreenX) / 2;
                 int midY = (mainPlayerScreenY + otherPlayerScreenY) / 2;
                 
@@ -471,6 +516,35 @@ public class GamePanel extends JPanel {
             
             int scaledSize = (int) (GameConfig.CHICKEN_SIZE * zoom);
             
+            // คำนวณทิศทางจากไก่ไปยังผู้เล่นที่อยู่ใกล้ที่สุด
+            int chickenWorldCenterX = chicken.x + GameConfig.CHICKEN_SIZE / 2;
+            int chickenWorldCenterY = chicken.y + GameConfig.CHICKEN_SIZE / 2;
+            
+            // หาผู้เล่นที่อยู่ใกล้ที่สุด
+            Player closestPlayer = mainPlayer;
+            int minDistance = Integer.MAX_VALUE;
+            
+            synchronized (players) {
+                for (Player player : players.values()) {
+                    int playerCenterX = player.x + GameConfig.PLAYER_SIZE / 2;
+                    int playerCenterY = player.y + GameConfig.PLAYER_SIZE / 2;
+                    
+                    int distance = GameConfig.calculateTopDownDistance(chickenWorldCenterX, chickenWorldCenterY, playerCenterX, playerCenterY);
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestPlayer = player;
+                    }
+                }
+            }
+            
+            int playerWorldCenterX = closestPlayer.x + GameConfig.PLAYER_SIZE / 2;
+            int playerWorldCenterY = closestPlayer.y + GameConfig.PLAYER_SIZE / 2;
+            
+            boolean facingLeft = chickenWorldCenterX > playerWorldCenterX; // ไก่อยู่ทางขวาของผู้เล่น = หันซ้าย
+            
+            System.out.println("Chicken facing player: " + closestPlayer.id + " Distance: " + minDistance + " FacingLeft: " + facingLeft);
+            
             if (chicken.state.equals("hit") && chickenHitSprite != null) {
                 // วาด Hit sprite ของไก่
                 int frameWidth = chickenHitSprite.getWidth(null) / GameConfig.CHICKEN_HIT_FRAMES;
@@ -479,13 +553,24 @@ public class GamePanel extends JPanel {
                 int srcX = chicken.hitFrame * frameWidth;
                 int srcY = 0;
                 
+                System.out.println("Drawing chicken hit sprite - Frame: " + chicken.hitFrame + " SrcX: " + srcX + " FrameWidth: " + frameWidth + " FacingLeft: " + facingLeft);
+                
                 g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                 g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
                 
-                g2d.drawImage(chickenHitSprite,
-                        chickenScreenX, chickenScreenY, chickenScreenX + scaledSize, chickenScreenY + scaledSize,
-                        srcX, srcY, srcX + frameWidth, srcY + frameHeight,
-                        null);
+                if (facingLeft) {
+                    // พลิกภาพแนวนอน (หันซ้าย)
+                    g2d.drawImage(chickenHitSprite,
+                            chickenScreenX + scaledSize, chickenScreenY, chickenScreenX, chickenScreenY + scaledSize,
+                            srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                            null);
+                } else {
+                    // วาดปกติ (หันขวา)
+                    g2d.drawImage(chickenHitSprite,
+                            chickenScreenX, chickenScreenY, chickenScreenX + scaledSize, chickenScreenY + scaledSize,
+                            srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                            null);
+                }
             } else if (chickenSprite != null) {
                 // วาด sprite ปกติของไก่
                 int frameWidth = chickenSprite.getWidth(null) / GameConfig.CHICKEN_ANIMATION_FRAMES;
@@ -497,10 +582,19 @@ public class GamePanel extends JPanel {
                 g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                 g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
                 
-                g2d.drawImage(chickenSprite,
-                        chickenScreenX, chickenScreenY, chickenScreenX + scaledSize, chickenScreenY + scaledSize,
-                        srcX, srcY, srcX + frameWidth, srcY + frameHeight,
-                        null);
+                if (facingLeft) {
+                    // พลิกภาพแนวนอน (หันซ้าย)
+                    g2d.drawImage(chickenSprite,
+                            chickenScreenX + scaledSize, chickenScreenY, chickenScreenX, chickenScreenY + scaledSize,
+                            srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                            null);
+                } else {
+                    // วาดปกติ (หันขวา)
+                    g2d.drawImage(chickenSprite,
+                            chickenScreenX, chickenScreenY, chickenScreenX + scaledSize, chickenScreenY + scaledSize,
+                            srcX, srcY, srcX + frameWidth, srcY + frameHeight,
+                            null);
+                }
             } else {
                 // วาดไก่แบบ fallback
                 g2d.setColor(new Color(255, 200, 0, 255)); // สีเหลือง
@@ -533,6 +627,29 @@ public class GamePanel extends JPanel {
             // วาดชื่อไก่
             g2d.setColor(new Color(255, 255, 255, 255));
             g2d.drawString(chickenName, nameX, nameY);
+            
+            // วาดเส้น debug ระยะห่างระหว่างผู้เล่นกับไก่
+            int playerCenterX = mainPlayerScreenX;
+            int playerCenterY = mainPlayerScreenY;
+            int chickenCenterX = chickenScreenX + scaledSize / 2;
+            int chickenCenterY = chickenScreenY + scaledSize / 2;
+            
+            // คำนวณระยะห่างแบบ top-down
+            int realDistance = GameConfig.calculateTopDownDistance(
+                chicken.x + GameConfig.CHICKEN_SIZE/2, chicken.y + GameConfig.CHICKEN_SIZE/2,
+                mainPlayer.x + GameConfig.PLAYER_SIZE/2, mainPlayer.y + GameConfig.PLAYER_SIZE/2
+            );
+            
+            // วาดเส้นเชื่อมระหว่างผู้เล่นกับไก่
+            g2d.setColor(new Color(255, 255, 0, 150)); // สีเหลืองโปร่งใส
+            g2d.setStroke(new java.awt.BasicStroke(2));
+            g2d.drawLine(playerCenterX, playerCenterY, chickenCenterX, chickenCenterY);
+            
+            // แสดงระยะห่าง
+            int midX = (playerCenterX + chickenCenterX) / 2;
+            int midY = (playerCenterY + chickenCenterY) / 2;
+            g2d.setColor(new Color(255, 255, 255, 255));
+            g2d.drawString("D: " + realDistance, midX, midY);
         }
     }
 
@@ -779,9 +896,7 @@ public class GamePanel extends JPanel {
                     // ตรวจสอบการชนกันระหว่างผู้เล่น
                     int minDistance = 7 ; // ระยะห่างขั้นต่ำ 4 pixels
                     
-                    int dx = newX - otherPlayer.x;
-                    int dy = newY - otherPlayer.y;
-                    int distance = (int) Math.sqrt(dx * dx + dy * dy);
+                    int distance = GameConfig.calculateTopDownDistance(newX, newY, otherPlayer.x, otherPlayer.y);
                     
                     if (distance < minDistance) {
                         return true; // มีการชนกัน
@@ -790,6 +905,7 @@ public class GamePanel extends JPanel {
             }
         }
         
+        // ไม่เช็คการชนกันกับไก่ - ให้ผู้เล่นเดินผ่านไก่ได้
 
         return false; // ไม่มีการชนกัน
     }
@@ -804,6 +920,144 @@ public class GamePanel extends JPanel {
     
     public void setGameClient(GameClient gameClient) {
         this.gameClient = gameClient;
+    }
+    
+    // KeyListener methods
+    @Override
+    public void keyPressed(KeyEvent e) {
+        System.out.println("Key pressed: " + e.getKeyCode() + " (TAB = " + KeyEvent.VK_TAB + ")");
+        if (e.getKeyCode() == KeyEvent.VK_TAB) {
+            System.out.println("TAB pressed - toggling inventory");
+            inventoryGUI.toggleVisibility();
+        }
+    }
+    
+    @Override
+    public void keyReleased(KeyEvent e) {
+        // ไม่ต้องทำอะไร
+    }
+    
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // ไม่ต้องทำอะไร
+    }
+    
+    // Methods สำหรับจัดการคลังเก็บของ
+    public void addToInventory(String itemName, int quantity) {
+        inventoryGUI.addItem(itemName, quantity);
+    }
+    
+    public void removeFromInventory(String itemName, int quantity) {
+        inventoryGUI.removeItem(itemName, quantity);
+    }
+    
+    public int getInventoryQuantity(String itemName) {
+        return inventoryGUI.getItemQuantity(itemName);
+    }
+    
+    // Methods สำหรับจัดการฐานข้อมูล
+    public void setCurrentPlayerName(String playerName) {
+        this.currentPlayerName = playerName;
+        loadPlayerData();
+    }
+    
+    private void loadPlayerData() {
+        if (currentPlayerName != null && database != null) {
+            JSONDatabase.PlayerData playerData = database.getPlayerData(currentPlayerName);
+            
+            // โหลดข้อมูลเงิน
+            Player mainPlayer = players.get(playerId);
+            if (mainPlayer != null) {
+                mainPlayer.money = playerData.money;
+            }
+            
+            // โหลดข้อมูลคลังเก็บของ
+            inventoryGUI.loadItems(playerData.inventory);
+            
+            System.out.println("Loaded player data for: " + currentPlayerName);
+            System.out.println("Money: " + playerData.money);
+            System.out.println("Inventory: " + playerData.inventory);
+        }
+    }
+    
+    public void savePlayerData() {
+        if (currentPlayerName != null && database != null) {
+            Player mainPlayer = players.get(playerId);
+            if (mainPlayer != null) {
+                JSONDatabase.PlayerData playerData = new JSONDatabase.PlayerData();
+                playerData.playerName = currentPlayerName;
+                playerData.money = mainPlayer.money;
+                playerData.level = 1; // ยังไม่ได้ทำระบบ level
+                playerData.experience = 0; // ยังไม่ได้ทำระบบ experience
+                
+                // บันทึกข้อมูลคลังเก็บของ
+                playerData.inventory.putAll(inventoryGUI.getAllItems());
+                
+                database.savePlayerData(currentPlayerName, playerData);
+                System.out.println("Saved player data for: " + currentPlayerName);
+            }
+        }
+    }
+    
+    public void updateChickensFromServer(String chickensData) {
+        try {
+            System.out.println("Received chickens data: " + chickensData);
+            chickens.clear();
+            String[] all = chickensData.split(";");
+            for (String c : all) {
+                if (!c.isEmpty()) {
+                    Chicken chicken = Chicken.fromString(c);
+                    chickens.add(chicken);
+                    System.out.println("Added chicken: " + chicken.x + ", " + chicken.y + " Alive: " + chicken.isAlive);
+                }
+            }
+            System.out.println("Total chickens loaded: " + chickens.size());
+        } catch (Exception e) {
+            System.out.println("Error updating chickens from server: " + e.getMessage());
+        }
+    }
+    
+    private void checkChickenRespawn() {
+        long currentTime = System.currentTimeMillis();
+        for (Chicken chicken : chickens) {
+            if (!chicken.isAlive && chicken.state.equals("dead")) {
+                if (currentTime - chicken.deathTime > GameConfig.CHICKEN_RESPAWN_TIME) {
+                    System.out.println("Respawning chicken at: " + chicken.originalX + ", " + chicken.originalY);
+                    chicken.respawn();
+                    
+                    // ส่งข้อมูลไก่ที่เกิดใหม่ไปยังเซิร์ฟเวอร์
+                    if (gameClient != null) {
+                        gameClient.sendChickenAttack(chicken.toString());
+                    }
+                }
+            }
+        }
+    }
+    
+    public void updateChickenFromServer(String chickenData) {
+        try {
+            Chicken serverChicken = Chicken.fromString(chickenData);
+            
+            // หาไก่ที่มีตำแหน่งใกล้เคียงกัน
+            for (Chicken localChicken : chickens) {
+                int distance = GameConfig.calculateTopDownDistance(localChicken.x, localChicken.y, serverChicken.x, serverChicken.y);
+                
+                if (distance < GameConfig.CHICKEN_SIZE) {
+                    // อัปเดตไก่ตัวนี้
+                    localChicken.health = serverChicken.health;
+                    localChicken.isAlive = serverChicken.isAlive;
+                    localChicken.state = serverChicken.state;
+                    localChicken.hitFrame = serverChicken.hitFrame;
+                    localChicken.deathTime = serverChicken.deathTime;
+                    localChicken.lastHitTime = serverChicken.lastHitTime;
+                    
+                    System.out.println("Updated local chicken: " + localChicken.x + ", " + localChicken.y + " Health: " + localChicken.health + " Alive: " + localChicken.isAlive + " State: " + localChicken.state);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error updating chicken from server: " + e.getMessage());
+        }
     }
 
     public void cleanup() {
