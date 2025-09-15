@@ -23,7 +23,8 @@ public class GameClient extends JFrame {
 
     public GameClient() throws IOException {
         setTitle("2D Online Game");
-        setSize(GameConfig.WIDTH, GameConfig.HEIGHT);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // ขยายให้เต็มหน้าจอ
+        setUndecorated(true); // ซ่อนขอบหน้าต่าง
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -49,21 +50,39 @@ public class GameClient extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 switch (e.getKeyCode()) {
-                    case KeyEvent.VK_W: wPressed = true; break;
-                    case KeyEvent.VK_S: sPressed = true; break;
-                    case KeyEvent.VK_A: aPressed = true; break;
-                    case KeyEvent.VK_D: dPressed = true; break;
-                    case KeyEvent.VK_ESCAPE: System.exit(0); break;
+                    case KeyEvent.VK_W:
+                        wPressed = true;
+                        break;
+                    case KeyEvent.VK_S:
+                        sPressed = true;
+                        break;
+                    case KeyEvent.VK_A:
+                        aPressed = true;
+                        break;
+                    case KeyEvent.VK_D:
+                        dPressed = true;
+                        break;
+                    case KeyEvent.VK_ESCAPE:
+                        System.exit(0);
+                        break;
                 }
             }
-            
+
             @Override
             public void keyReleased(KeyEvent e) {
                 switch (e.getKeyCode()) {
-                    case KeyEvent.VK_W: wPressed = false; break;
-                    case KeyEvent.VK_S: sPressed = false; break;
-                    case KeyEvent.VK_A: aPressed = false; break;
-                    case KeyEvent.VK_D: dPressed = false; break;
+                    case KeyEvent.VK_W:
+                        wPressed = false;
+                        break;
+                    case KeyEvent.VK_S:
+                        sPressed = false;
+                        break;
+                    case KeyEvent.VK_A:
+                        aPressed = false;
+                        break;
+                    case KeyEvent.VK_D:
+                        dPressed = false;
+                        break;
                 }
             }
         };
@@ -95,7 +114,7 @@ public class GameClient extends JFrame {
 
     private void handleMovement() {
         String direction = "";
-        
+
         if (wPressed) {
             direction = "up";
         } else if (sPressed) {
@@ -112,7 +131,7 @@ public class GameClient extends JFrame {
         } else {
             out.println("STOP");
         }
-        
+
     }
 
     private void listen() {
@@ -133,7 +152,7 @@ public class GameClient extends JFrame {
     }
 
     private void updatePlayers(String data) {
-        synchronized(players) {
+        synchronized (players) {
             players.clear();
             String[] all = data.split(";");
             for (String p : all) {
@@ -144,7 +163,6 @@ public class GameClient extends JFrame {
             }
         }
     }
-    
 
     public static void main(String[] args) throws Exception {
         new GameClient();
