@@ -34,6 +34,7 @@ public class GamePanel extends JPanel implements KeyListener {
     private InventoryGUI inventoryGUI;
     private JSONDatabase database;
     private String currentPlayerName;
+    private BackgroundManager backgroundManager;
     private int fps = 0;
     private long lastFpsTime = 0;
     private int frameCount = 0;
@@ -145,6 +146,7 @@ public class GamePanel extends JPanel implements KeyListener {
         this.gameStarted = true;
         this.inventoryGUI = new InventoryGUI(parentFrame);
         this.database = new JSONDatabase();
+        this.backgroundManager = new BackgroundManager();
         loadSprites();
         loadSounds();
         
@@ -445,7 +447,11 @@ public class GamePanel extends JPanel implements KeyListener {
 
             g2d.setComposite(AlphaComposite.SrcOver);
 
-            drawBackground(g2d);
+            if (backgroundManager != null) {
+                backgroundManager.drawBackground(g2d, players.get(playerId), getWidth(), getHeight(), zoom);
+            } else {
+                drawBackground(g2d);
+            }
 
             
             drawChickens(g2d);
