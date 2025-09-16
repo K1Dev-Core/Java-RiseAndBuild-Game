@@ -113,7 +113,6 @@ public class GameClient extends JFrame {
             if (panel.isDisplayable() && panel.isShowing()) {
                 panel.updateGame();
                 handleMovement();
-                panel.repaint(); 
             }
         });
         gameTimer.start();

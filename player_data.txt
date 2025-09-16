@@ -2,7 +2,7 @@
 # Format: PLAYER:playerName|money|level|experience|inventory
 # Inventory format: item1:quantity1,item2:quantity2
 
-PLAYER:Zaza|15|1|0|Coin:110,Feather:187,Iron:1,Wood:1
-PLAYER:555555555|10|1|0|Coin:60,Feather:123
-PLAYER:da|45|1|0|Coin:24,Wood:11,Feather:38,Iron:2,Stone:5
+PLAYER:Zaza|15|1|0|Coin:125,Wood:1,Feather:209,Iron:1
+PLAYER:555555555|25|1|0|Coin:66,Feather:131
+PLAYER:da|5|1|0|Coin:25,Wood:11,Feather:38,Iron:2,Stone:5
 PLAYER:10104|5|1|0|Coin:24,Feather:24

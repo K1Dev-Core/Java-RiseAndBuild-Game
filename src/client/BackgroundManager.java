@@ -90,8 +90,8 @@ public class BackgroundManager {
         int startX = tileX * TILE_SIZE;
         int startY = tileY * TILE_SIZE;
         
-        for (int x = 0; x < TILE_SIZE; x += 32) {
-            for (int y = 0; y < TILE_SIZE; y += 32) {
+        for (int x = 0; x < TILE_SIZE; x += 64) {
+            for (int y = 0; y < TILE_SIZE; y += 64) {
                 int worldX = startX + x;
                 int worldY = startY + y;
                 
@@ -101,9 +101,7 @@ public class BackgroundManager {
                 
                 Color terrainColor = getTerrainColor(noiseValue);
                 g2d.setColor(terrainColor);
-                g2d.fillRect(x, y, 32, 32);
-                
-                drawTerrainDetails(g2d, x, y, 32, noiseValue);
+                g2d.fillRect(x, y, 64, 64);
             }
         }
         
@@ -117,11 +115,8 @@ public class BackgroundManager {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
         
-        drawSkyGradient(g2d, screenWidth, screenHeight);
-        drawCachedTerrain(g2d, mainPlayer, screenWidth, screenHeight, zoom);
-        drawClouds(g2d, mainPlayer, screenWidth, screenHeight, zoom);
-        drawBackgroundObjects(g2d, mainPlayer, screenWidth, screenHeight, zoom);
-        drawGrid(g2d, mainPlayer, screenWidth, screenHeight, zoom);
+        drawSimpleBackground(g2d, screenWidth, screenHeight);
+        drawSimpleGrid(g2d, mainPlayer, screenWidth, screenHeight, zoom);
         drawMapBounds(g2d, mainPlayer, screenWidth, screenHeight, zoom);
     }
     
@@ -135,7 +130,7 @@ public class BackgroundManager {
         int playerTileX = (int) (playerX / TILE_SIZE);
         int playerTileY = (int) (playerY / TILE_SIZE);
         
-        int bufferZone = 3;
+        int bufferZone = 2;
         
         for (int tileX = playerTileX - bufferZone; tileX <= playerTileX + bufferZone; tileX++) {
             for (int tileY = playerTileY - bufferZone; tileY <= playerTileY + bufferZone; tileY++) {
@@ -158,13 +153,35 @@ public class BackgroundManager {
         }
     }
     
-    private void drawSkyGradient(Graphics2D g2d, int screenWidth, int screenHeight) {
-        GradientPaint skyGradient = new GradientPaint(
-            0, 0, new Color(135, 206, 235),
-            0, screenHeight, new Color(25, 25, 112)
-        );
-        g2d.setPaint(skyGradient);
+    private void drawSimpleBackground(Graphics2D g2d, int screenWidth, int screenHeight) {
+        g2d.setColor(new Color(34, 139, 34));
         g2d.fillRect(0, 0, screenWidth, screenHeight);
+    }
+    
+    private void drawSimpleGrid(Graphics2D g2d, Object mainPlayer, int screenWidth, int screenHeight, float zoom) {
+        int playerX = getPlayerX(mainPlayer);
+        int playerY = getPlayerY(mainPlayer);
+        
+        int tileSize = (int) (32 * zoom);
+        int playerScreenX = screenWidth / 2;
+        int playerScreenY = screenHeight / 2;
+        
+        int offsetX = (int) ((playerX % 32) * zoom);
+        int offsetY = (int) ((playerY % 32) * zoom);
+        
+        int startX = playerScreenX - offsetX;
+        int startY = playerScreenY - offsetY;
+        
+        g2d.setColor(new Color(0, 100, 0, 30));
+        g2d.setStroke(new BasicStroke(1));
+        
+        for (int x = startX; x < screenWidth + tileSize; x += tileSize) {
+            g2d.drawLine(x, 0, x, screenHeight);
+        }
+        
+        for (int y = startY; y < screenHeight + tileSize; y += tileSize) {
+            g2d.drawLine(0, y, screenWidth, y);
+        }
     }
     
     private void drawClouds(Graphics2D g2d, Object mainPlayer, int screenWidth, int screenHeight, float zoom) {

@@ -46,6 +46,12 @@ public class GamePanel extends JPanel implements KeyListener {
     private long lastDatabaseUpdate = 0;
     private javax.swing.Timer gameTimer;
     private javax.swing.Timer gameUpdateTimer;
+    private Thread gameUpdateThread;
+    private volatile boolean gameRunning = true;
+    private long lastRepaintTime = 0;
+    private int repaintCount = 0;
+    private long debugStartTime = 0;
+    private boolean debugMode = false;
 
     public GamePanel() {
         setFocusable(true);
@@ -60,22 +66,38 @@ public class GamePanel extends JPanel implements KeyListener {
     }
     
     private void startGameTimer() {
-        
         gameTimer = new javax.swing.Timer(16, e -> { 
             if (isDisplayable() && isShowing()) {
-                updateGame();
                 repaint();
             }
         });
         gameTimer.start();
         
-        
-        gameUpdateTimer = new javax.swing.Timer(5000, e -> { 
+        gameUpdateTimer = new javax.swing.Timer(15000, e -> { 
             if (isDisplayable() && isShowing()) {
                 loadPlayerDataFromDatabase();
             }
         });
         gameUpdateTimer.start();
+        
+        startGameUpdateThread();
+    }
+    
+    private void startGameUpdateThread() {
+        gameUpdateThread = new Thread(() -> {
+            while (gameRunning) {
+                try {
+                    if (isDisplayable() && isShowing()) {
+                        updateGame();
+                    }
+                    Thread.sleep(16);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+        gameUpdateThread.setDaemon(true);
+        gameUpdateThread.start();
     }
 
     public void setPlayerId(String playerId) {
@@ -90,14 +112,12 @@ public class GamePanel extends JPanel implements KeyListener {
         
         long currentTime = System.currentTimeMillis();
         
-        
         if (currentTime - lastFrameTime > 100) {
             updateAnimation();
             updateAttackFeedback();
             updateFPS();
             lastFrameTime = currentTime;
         }
-        
         
         checkPlayerChanges();
         updateChickens();
@@ -112,28 +132,26 @@ public class GamePanel extends JPanel implements KeyListener {
         Player mainPlayer = players.get(playerId);
         if (mainPlayer == null) return;
         
-        
+        boolean needsRepaint = false;
         Iterator<DroppedItem> iterator = droppedItems.iterator();
         while (iterator.hasNext()) {
             DroppedItem item = iterator.next();
             
-            
             if (item.isExpired()) {
                 iterator.remove();
+                needsRepaint = true;
                 continue;
             }
             
-            
             if (item.isPlayerNearby(mainPlayer, 15)) { 
-                
                 addToInventory(item.itemName, item.quantity);
-                
-                
                 showNotification("Picked up: " + item.itemName + " x" + item.quantity);
-                
-                
                 iterator.remove();
+                needsRepaint = true;
             }
+        }
+        if (needsRepaint) {
+            repaint();
         }
     }
 
@@ -206,50 +224,57 @@ public class GamePanel extends JPanel implements KeyListener {
     
     private void createChickens() {
         chickens.clear();
+        System.out.println("Creating local chickens...");
+        
         Random random = new Random();
+        int spawnCenterX = GameConfig.MAP_WIDTH / 2;
+        int spawnCenterY = GameConfig.MAP_HEIGHT / 2;
+        int spawnRadius = 200;
         
         for (int i = 0; i < GameConfig.CHICKEN_COUNT; i++) {
-            int x = 100 + random.nextInt(GameConfig.MAP_WIDTH - 200);
-            int y = 100 + random.nextInt(GameConfig.MAP_HEIGHT - 200);
-            boolean validPosition = false;
-            int attempts = 0;
+            int x = spawnCenterX + random.nextInt(spawnRadius * 2) - spawnRadius;
+            int y = spawnCenterY + random.nextInt(spawnRadius * 2) - spawnRadius;
             
-            while (!validPosition && attempts < 100) {
-                x = 100 + random.nextInt(GameConfig.MAP_WIDTH - 200);
-                y = 100 + random.nextInt(GameConfig.MAP_HEIGHT - 200);
-                
-                validPosition = true;
-                
-                for (Chicken existingChicken : chickens) {
-                    double distance = GameConfig.calculatePreciseDistance(x, y, existingChicken.x, existingChicken.y);
-                    if (distance < 120) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-                
-                attempts++;
-            }
+            x = Math.max(50, Math.min(x, GameConfig.MAP_WIDTH - GameConfig.CHICKEN_SIZE - 50));
+            y = Math.max(50, Math.min(y, GameConfig.MAP_HEIGHT - GameConfig.CHICKEN_SIZE - 50));
             
             chickens.add(new Chicken(x, y));
+            System.out.println("Created local chicken at: " + x + ", " + y);
         }
+        System.out.println("Total local chickens created: " + chickens.size());
     }
     
     private void updateChickens() {
+        boolean needsRepaint = false;
         for (Chicken chicken : chickens) {
+            boolean wasAlive = chicken.isAlive;
             chicken.update(chickens);
+            if (wasAlive != chicken.isAlive) {
+                needsRepaint = true;
+            }
         }
         checkChickenRespawn();
+        if (needsRepaint) {
+            repaint();
+        }
     }
     
     private void updateGhosts() {
+        boolean needsRepaint = false;
         Iterator<Ghost> iterator = ghosts.iterator();
         while (iterator.hasNext()) {
             Ghost ghost = iterator.next();
+            boolean wasVisible = ghost.isVisible;
             ghost.update();
-            if (ghost.shouldDespawn()) {
-                iterator.remove();
+            if (wasVisible != ghost.isVisible || ghost.shouldDespawn()) {
+                needsRepaint = true;
+                if (ghost.shouldDespawn()) {
+                    iterator.remove();
+                }
             }
+        }
+        if (needsRepaint) {
+            repaint();
         }
     }
     
@@ -273,6 +298,7 @@ public class GamePanel extends JPanel implements KeyListener {
             if (soundManager != null) {
                 soundManager.playGhostSound();
             }
+            repaint();
         }
     }
 
@@ -287,8 +313,8 @@ public class GamePanel extends JPanel implements KeyListener {
                 soundManager.playSlashSound();
             }
             
-            
             checkChickenAttack();
+            repaint();
         }
     }
     
@@ -425,8 +451,9 @@ public class GamePanel extends JPanel implements KeyListener {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+        long paintStart = System.currentTimeMillis();
         
+        super.paintComponent(g);
         
         if (!hasFocus()) {
             requestFocusInWindow();
@@ -434,7 +461,6 @@ public class GamePanel extends JPanel implements KeyListener {
 
         Graphics2D g2d = (Graphics2D) g.create();
         try {
-            
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
@@ -453,13 +479,11 @@ public class GamePanel extends JPanel implements KeyListener {
                 drawBackground(g2d);
             }
 
-            
             drawChickens(g2d);
             drawGhosts(g2d);
             drawDroppedItems(g2d);
             
             synchronized (players) {
-                
                 java.util.List<Player> otherPlayers = new ArrayList<>();
                 Player mainPlayer = null;
                 
@@ -471,20 +495,15 @@ public class GamePanel extends JPanel implements KeyListener {
                     }
                 }
                 
-                
                 otherPlayers.sort((p1, p2) -> Integer.compare(p1.y, p2.y));
                 
-                
                 for (Player p : otherPlayers) {
-                    
                     int relativeX = p.x - mainPlayer.x;
                     int relativeY = p.y - mainPlayer.y;
                     int playerScreenX = getWidth() / 2 + (int) (relativeX * zoom);
                     int playerScreenY = getHeight() / 2 + (int) (relativeY * zoom);
                     
                     int scaledSize = (int) (GameConfig.PLAYER_SIZE * zoom);
-                    int renderDistance = GameConfig.RENDER_DISTANCE;
-                    
                     
                     double preciseDistance = GameConfig.calculatePreciseDistance(
                         mainPlayer.x + GameConfig.PLAYER_SIZE / 2,
@@ -494,36 +513,16 @@ public class GamePanel extends JPanel implements KeyListener {
                     );
                     int distance = (int) Math.round(preciseDistance);
                     
-                    
                     if (distance > GameConfig.RENDER_DISTANCE) {
                         continue; 
-                    }
-                    
-                    
-                    if (GameConfig.DEBUG_DISTANCE) {
-                        System.out.println("Other player distance: " + distance + " pixels (RENDER_DISTANCE: " + GameConfig.RENDER_DISTANCE + ")");
-                        
-                        
-                        g2d.setColor(new Color(0, 0, 255, 150)); 
-                        g2d.setStroke(new BasicStroke(2));
-                        g2d.drawLine(getWidth() / 2, getHeight() / 2, playerScreenX + scaledSize / 2, playerScreenY + scaledSize / 2);
-                        
-                        
-                        g2d.setColor(Color.BLUE);
-                        g2d.setFont(new Font("Arial", Font.BOLD, 12));
-                        g2d.drawString(distance + "px", playerScreenX, playerScreenY - 5);
                     }
                     
                     drawPlayer(g2d, p);
                 }
                 
-                
                 if (mainPlayer != null) {
                     drawPlayer(g2d, mainPlayer);
                 }
-                
-                
-                drawPlayerDistanceLines(g2d);
             }
 
             drawCooldownBar(g2d);
@@ -531,6 +530,13 @@ public class GamePanel extends JPanel implements KeyListener {
             drawMoney(g2d);
             drawFPS(g2d);
             drawNotification(g2d);
+            
+            if (debugMode) {
+                long paintTime = System.currentTimeMillis() - paintStart;
+                if (paintTime > 8) {
+                    System.out.println("WARNING: Paint took too long: " + paintTime + "ms");
+                }
+            }
         } finally {
             g2d.dispose();
         }
@@ -601,7 +607,6 @@ public class GamePanel extends JPanel implements KeyListener {
     }
 
     private void drawBackground(Graphics2D g2d) {
-        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
@@ -612,10 +617,7 @@ public class GamePanel extends JPanel implements KeyListener {
         g2d.setColor(new Color(18, 18, 18));
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        
         drawFogOfWar(g2d);
-        
-        
         drawMapBounds(g2d);
     }
 
@@ -699,44 +701,6 @@ public class GamePanel extends JPanel implements KeyListener {
         g2d.drawRect(mapStartX + 3, mapStartY + 3, mapWidth - 6, mapHeight - 6);
     }
     
-    private void drawPlayerDistanceLines(Graphics2D g2d) {
-        Player mainPlayer = players.get(playerId);
-        if (mainPlayer == null) return;
-        
-        int mainPlayerScreenX = getWidth() / 2;
-        int mainPlayerScreenY = getHeight() / 2;
-        
-        
-        
-        
-        for (Player otherPlayer : players.values()) {
-            if (!otherPlayer.id.equals(playerId)) {
-                int relativeX = otherPlayer.x - mainPlayer.x;
-                int relativeY = otherPlayer.y - mainPlayer.y;
-                int otherPlayerScreenX = mainPlayerScreenX + (int) (relativeX * zoom);
-                int otherPlayerScreenY = mainPlayerScreenY + (int) (relativeY * zoom);
-                
-                
-                g2d.setColor(new Color(100, 150, 255, 80)); 
-                g2d.setStroke(new BasicStroke(1));
-                g2d.drawLine(mainPlayerScreenX, mainPlayerScreenY, otherPlayerScreenX, otherPlayerScreenY);
-                
-                
-                    double preciseDistance = GameConfig.calculatePreciseDistance(0, 0, relativeX, relativeY);
-                    int distance = (int) Math.round(preciseDistance);
-                int midX = (mainPlayerScreenX + otherPlayerScreenX) / 2;
-                int midY = (mainPlayerScreenY + otherPlayerScreenY) / 2;
-                
-                
-                g2d.setColor(new Color(0, 0, 0, 100));
-                g2d.fillRect(midX - 15, midY - 10, 30, 12);
-                
-                g2d.setColor(new Color(255, 255, 255, 200));
-                g2d.setFont(new Font("Arial", Font.BOLD, 8));
-                g2d.drawString(distance + "px", midX - 12, midY - 2);
-            }
-        }
-    }
     
     private void drawChickens(Graphics2D g2d) {
         Player mainPlayer = players.get(playerId);
@@ -1053,6 +1017,8 @@ public class GamePanel extends JPanel implements KeyListener {
     private void updateAnimation() {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastFrameTime > (1000 / GameConfig.ANIMATION_SPEED)) {
+            boolean needsRepaint = false;
+            
             synchronized (players) {
                 for (Player p : players.values()) {
                     if (p.state.equals("attack2")) {
@@ -1060,9 +1026,13 @@ public class GamePanel extends JPanel implements KeyListener {
                         if (currentFrame < GameConfig.ANIMATION_FRAMES - 1) {
                             currentFrame++;
                             playerAttackFrames.put(p.id, currentFrame);
+                            needsRepaint = true;
                         }
                     } else {
-                        playerAttackFrames.remove(p.id);
+                        if (playerAttackFrames.containsKey(p.id)) {
+                            playerAttackFrames.remove(p.id);
+                            needsRepaint = true;
+                        }
                     }
                 }
 
@@ -1079,7 +1049,15 @@ public class GamePanel extends JPanel implements KeyListener {
                     }
                 }
 
-                animationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
+                int newAnimationFrame = (animationFrame + 1) % GameConfig.ANIMATION_FRAMES;
+                if (newAnimationFrame != animationFrame) {
+                    animationFrame = newAnimationFrame;
+                    needsRepaint = true;
+                }
+            }
+            
+            if (needsRepaint) {
+                repaint();
             }
             lastFrameTime = currentTime;
         }
@@ -1090,6 +1068,7 @@ public class GamePanel extends JPanel implements KeyListener {
             long currentTime = System.currentTimeMillis();
             if (currentTime - attackFeedbackTime > 500) {
                 showAttackFeedback = false;
+                repaint();
             }
         }
     }
@@ -1099,7 +1078,11 @@ public class GamePanel extends JPanel implements KeyListener {
         frameCount++;
 
         if (currentTime - lastFpsTime >= 1000) {
-            fps = frameCount;
+            int newFps = frameCount;
+            if (newFps != fps) {
+                fps = newFps;
+                repaint();
+            }
             frameCount = 0;
             lastFpsTime = currentTime;
         }
@@ -1128,6 +1111,7 @@ public class GamePanel extends JPanel implements KeyListener {
     public void showNotification(String message) {
         notificationText = message;
         notificationTime = System.currentTimeMillis();
+        repaint();
     }
 
     private void drawPlayer(Graphics g, Player p) {
@@ -1362,63 +1346,59 @@ public class GamePanel extends JPanel implements KeyListener {
     
     private void loadPlayerData() {
         if (currentPlayerName != null && database != null) {
-            JSONDatabase.PlayerData playerData = database.getPlayerData(currentPlayerName);
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastDatabaseUpdate < 2000) {
+                return;
+            }
             
+            JSONDatabase.PlayerData playerData = database.getPlayerData(currentPlayerName);
             
             Player mainPlayer = players.get(playerId);
             if (mainPlayer != null) {
                 mainPlayer.money = playerData.money;
-                System.out.println("Updated money to: " + mainPlayer.money);
             }
             
-            
             inventoryGUI.loadItems(playerData.inventory);
-            
-            
-            repaint();
+            lastDatabaseUpdate = currentTime;
             
             System.out.println("Loaded player data for: " + currentPlayerName);
-            System.out.println("Money: " + playerData.money);
-            System.out.println("Inventory: " + playerData.inventory);
         }
     }
     
     private void loadInventoryFromDatabase() {
         if (database != null && currentPlayerName != null) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastDatabaseUpdate < 3000) {
+                return;
+            }
             
             JSONDatabase.PlayerData playerData = database.getPlayerData(currentPlayerName);
             if (playerData != null) {
                 inventoryGUI.loadItems(playerData.inventory);
+                lastDatabaseUpdate = currentTime;
                 System.out.println("Loaded inventory from database for player: " + currentPlayerName);
-                System.out.println("Inventory: " + playerData.inventory);
-            } else {
-                System.out.println("No player data found for: " + currentPlayerName);
             }
         }
     }
     
     public void loadPlayerDataFromDatabase() {
         if (database != null && currentPlayerName != null) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastDatabaseUpdate < 5000) {
+                return;
+            }
+            
             JSONDatabase.PlayerData playerData = database.getPlayerData(currentPlayerName);
             if (playerData != null) {
-                
                 Player mainPlayer = players.get(playerId);
                 if (mainPlayer != null) {
                     mainPlayer.money = playerData.money;
-                    System.out.println("Updated money to: " + mainPlayer.money);
                 }
                 
-                
                 inventoryGUI.loadItems(playerData.inventory);
-                
-                
-                repaint();
+                lastDatabaseUpdate = currentTime;
                 
                 System.out.println("Loaded player data from database for: " + currentPlayerName);
-                System.out.println("Money: " + playerData.money);
-                System.out.println("Inventory: " + playerData.inventory);
-            } else {
-                System.out.println("No player data found for: " + currentPlayerName);
             }
         }
     }
@@ -1451,10 +1431,11 @@ public class GamePanel extends JPanel implements KeyListener {
                 if (!c.isEmpty()) {
                     Chicken chicken = Chicken.fromString(c);
                     chickens.add(chicken);
-                    System.out.println("Added chicken: " + chicken.x + ", " + chicken.y + " Alive: " + chicken.isAlive);
+                    System.out.println("Added server chicken: " + chicken.x + ", " + chicken.y + " Alive: " + chicken.isAlive);
                 }
             }
-            System.out.println("Total chickens loaded: " + chickens.size());
+            System.out.println("Total server chickens loaded: " + chickens.size());
+            repaint();
         } catch (Exception e) {
             System.out.println("Error updating chickens from server: " + e.getMessage());
         }
@@ -1505,6 +1486,16 @@ public class GamePanel extends JPanel implements KeyListener {
     }
 
     public void cleanup() {
+        gameRunning = false;
+        if (gameUpdateThread != null) {
+            gameUpdateThread.interrupt();
+        }
+        if (gameTimer != null) {
+            gameTimer.stop();
+        }
+        if (gameUpdateTimer != null) {
+            gameUpdateTimer.stop();
+        }
         if (soundManager != null) {
             soundManager.cleanup();
         }

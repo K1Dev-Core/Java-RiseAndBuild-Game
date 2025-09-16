@@ -3,8 +3,8 @@ package common;
 public class GameConfig {
     public static final int PORT = 12345;
     public static final int TILE_SIZE = 32;
-    public static final int MAP_WIDTH_TILES = 50;
-    public static final int MAP_HEIGHT_TILES = 50;
+    public static final int MAP_WIDTH_TILES = 64;
+    public static final int MAP_HEIGHT_TILES = 64;
     public static final int MAP_WIDTH = MAP_WIDTH_TILES * TILE_SIZE;
     public static final int MAP_HEIGHT = MAP_HEIGHT_TILES * TILE_SIZE;
     public static final int PLAYER_SIZE = 48;
@@ -26,13 +26,13 @@ public class GameConfig {
     
     public static final int GHOST_SIZE = 16;
     public static final int GHOST_ANIMATION_FRAMES = 4;
-    public static final int GHOST_SPAWN_CHANCE = 2;
+    public static final int GHOST_SPAWN_CHANCE = 1;
     public static final int GHOST_DURATION = 1000;
     public static final int GHOST_SPAWN_DISTANCE = 40;
     
     
-    public static final int RENDER_DISTANCE = 60; 
-    public static final int VIEW_BUFFER = 60; 
+    public static final int RENDER_DISTANCE = 200; 
+    public static final int VIEW_BUFFER = 200; 
     public static final boolean DEBUG_DISTANCE = false; 
     
     

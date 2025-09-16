@@ -104,12 +104,10 @@ public class ClientHandler implements Runnable {
         try {
             Chicken attackedChicken = Chicken.fromString(chickenData);
             
-            
             for (Chicken globalChicken : globalChickens) {
                 int distance = GameConfig.calculateTopDownDistance(globalChicken.x, globalChicken.y, attackedChicken.x, attackedChicken.y);
                 
                 if (distance < GameConfig.CHICKEN_SIZE) {
-                    
                     globalChicken.health = attackedChicken.health;
                     globalChicken.isAlive = attackedChicken.isAlive;
                     globalChicken.state = attackedChicken.state;
@@ -119,10 +117,7 @@ public class ClientHandler implements Runnable {
                     
                     System.out.println("Updated global chicken: " + globalChicken.x + ", " + globalChicken.y + " Health: " + globalChicken.health + " Alive: " + globalChicken.isAlive + " State: " + globalChicken.state);
                     
-                    
                     broadcastChickenUpdate(globalChicken.toString());
-                    
-                    
                     broadcastAllChickens();
                     break;
                 }
